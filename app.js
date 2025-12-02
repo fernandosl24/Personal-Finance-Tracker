@@ -490,6 +490,9 @@ function renderSettings() {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3><i class="fa-solid fa-tags"></i> Manage Categories</h3>
                 <div style="display: flex; gap: 0.5rem;">
+                    <button id="optimize-cat-btn" class="btn btn-sm" onclick="optimizeCategories()" style="background-color: rgba(99, 102, 241, 0.1); border: 1px solid var(--accent-primary); color: var(--accent-primary);">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Optimize
+                    </button>
                     <button id="sync-cat-btn" class="btn btn-sm btn-secondary" onclick="syncCategories()" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary);">
                         <i class="fa-solid fa-rotate"></i> Sync
                     </button>
@@ -851,7 +854,63 @@ function renderTransactions() {
                     </button>
                 </div>
             </div>
-            ${renderTransactionList(state.transactions)}
+
+            <!-- Filter Bar -->
+            <div class="filter-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                
+                <!-- Search -->
+                <div style="grid-column: span 2;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Search</label>
+                    <div style="position: relative;">
+                        <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                        <input type="text" id="filter-search" placeholder="Search descriptions..." oninput="filterTransactions()" 
+                            style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 2rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div>
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Type</label>
+                    <select id="filter-type" onchange="filterTransactions()" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                        <option value="all">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                        <option value="transfer">Transfer</option>
+                    </select>
+                </div>
+
+                <!-- Category -->
+                <div>
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Category</label>
+                    <select id="filter-category" onchange="filterTransactions()" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                        <option value="all">All Categories</option>
+                        ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                </div>
+
+                <!-- Account -->
+                <div>
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Account</label>
+                    <select id="filter-account" onchange="filterTransactions()" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                        <option value="all">All Accounts</option>
+                        ${state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+                    </select>
+                </div>
+
+                <!-- Date Range -->
+                <div>
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">From</label>
+                    <input type="date" id="filter-date-from" onchange="filterTransactions()" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                </div>
+                <div>
+                    <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">To</label>
+                    <input type="date" id="filter-date-to" onchange="filterTransactions()" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                </div>
+            </div>
+
+            <div id="transaction-list-container">
+                ${renderTransactionList(state.transactions)}
+            </div>
         </div>
         
         <!-- Add Transaction Modal -->
@@ -1954,6 +2013,234 @@ window.syncCategories = async () => {
     }
 };
 
+window.optimizeCategories = async () => {
+    const btn = document.getElementById('optimize-cat-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing...';
+
+    try {
+        const openAIKey = localStorage.getItem('openai_api_key');
+        if (!openAIKey) throw new Error('Please save your OpenAI API Key first in Settings.');
+
+        // 1. Local Deduplication
+        const uniqueNames = new Set();
+        const duplicates = [];
+
+        state.categories.forEach(c => {
+            const name = c.name.trim();
+            const lowerName = name.toLowerCase();
+            if (uniqueNames.has(lowerName)) {
+                // Found a duplicate!
+                duplicates.push({
+                    old_name: name,
+                    new_name: name, // Merge into itself (deduplicate)
+                    reason: 'Duplicate'
+                });
+            } else {
+                uniqueNames.add(lowerName);
+            }
+        });
+
+        // 2. AI Analysis for Synonyms
+        const categories = Array.from(uniqueNames); // Send only unique names to AI
+        if (categories.length < 2 && duplicates.length === 0) {
+            alert('Your categories are already optimized!');
+            return;
+        }
+
+        let aiMerges = [];
+        if (categories.length >= 2) {
+            const prompt = `Analyze this list of categories:
+            ${JSON.stringify(categories)}
+
+            Goal: Simplify and group synonyms.
+            Examples: 
+            - "Uber", "Lyft", "Taxi" -> "Transportation"
+            - "Bank Fee", "Bank Charges" -> "Fees"
+            - "Groceries", "Supermarket" -> "Groceries"
+
+            Return a JSON object with a key "merges" containing a list of objects:
+            { "old_name": "Bank Fee", "new_name": "Fees" }
+
+            Only include categories that should be CHANGED. If a category is fine, do not include it.
+            `;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openAIKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    messages: [
+                        { role: "system", content: "You are a data cleaner. Respond in JSON." },
+                        { role: "user", content: prompt }
+                    ],
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!response.ok) throw new Error('OpenAI API Error');
+            const data = await response.json();
+            aiMerges = JSON.parse(data.choices[0].message.content).merges || [];
+        }
+
+        const allMerges = [...duplicates, ...aiMerges];
+
+        if (allMerges.length === 0) {
+            alert('Your categories are already optimized!');
+        } else {
+            showMergeReviewModal(allMerges);
+        }
+
+    } catch (error) {
+        console.error('Optimization Error:', error);
+        alert('Optimization failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};
+
+window.showMergeReviewModal = (merges) => {
+    // Create Modal
+    const modalId = 'merge-modal';
+    let modal = document.getElementById(modalId);
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    const rows = merges.map((m, i) => `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.8rem;">
+                <input type="checkbox" class="merge-check" id="merge-${i}" checked data-old="${m.old_name}" data-new="${m.new_name}">
+            </td>
+            <td style="padding: 0.8rem; color: var(--danger);">${m.old_name}</td>
+            <td style="padding: 0.8rem;"><i class="fa-solid fa-arrow-right" style="color: var(--text-secondary);"></i></td>
+            <td style="padding: 0.8rem; color: var(--success); font-weight: bold;">${m.new_name}</td>
+        </tr>
+    `).join('');
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal" onclick="document.getElementById('${modalId}').style.display='none'">&times;</span>
+            <h2><i class="fa-solid fa-broom"></i> Review Category Merges</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Select the merges you want to apply. This will update all transactions and delete the old categories.
+            </p>
+            <div style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; color: var(--text-secondary); font-size: 0.9rem;">
+                            <th style="padding: 0.5rem;">Apply</th>
+                            <th style="padding: 0.5rem;">Old Name</th>
+                            <th></th>
+                            <th style="padding: 0.5rem;">New Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="applyCategoryMerges()">
+                Merge Selected
+            </button>
+        </div>
+    `;
+    modal.style.display = 'flex';
+};
+
+window.applyCategoryMerges = async () => {
+    const checks = document.querySelectorAll('.merge-check:checked');
+    const mergesToApply = Array.from(checks).map(c => ({
+        old_name: c.dataset.old,
+        new_name: c.dataset.new
+    }));
+
+    if (mergesToApply.length === 0) return;
+
+    const btn = document.querySelector('#merge-modal .btn-primary');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Merging...';
+
+    try {
+        let updatedCount = 0;
+
+        for (const merge of mergesToApply) {
+            const newName = merge.new_name.trim();
+            const oldName = merge.old_name.trim();
+
+            // 1. Ensure New Category Exists (Case-Insensitive Check)
+            let newCat = state.categories.find(c => c.name.toLowerCase() === newName.toLowerCase());
+
+            if (!newCat) {
+                // Determine type/color from old category or default
+                const oldCat = state.categories.find(c => c.name === oldName);
+
+                // Double check DB to avoid race conditions/duplicates
+                const { data: existing, error: searchError } = await window.supabaseClient
+                    .from('categories')
+                    .select('*')
+                    .ilike('name', newName)
+                    .eq('user_id', state.user.id);
+
+                if (existing && existing.length > 0) {
+                    newCat = existing[0];
+                } else {
+                    // Insert new
+                    const { data, error } = await window.supabaseClient
+                        .from('categories')
+                        .insert([{
+                            user_id: state.user.id,
+                            name: newName,
+                            type: oldCat ? oldCat.type : 'expense',
+                            color_code: oldCat ? oldCat.color_code : '#94a3b8'
+                        }])
+                        .select();
+
+                    if (error) throw error;
+                    newCat = data[0];
+                }
+            }
+
+            // 2. Update Transactions
+            const { error: txError } = await window.supabaseClient
+                .from('transactions')
+                .update({ category: newName })
+                .eq('category', oldName);
+
+            if (txError) throw txError;
+
+            // 3. Delete Old Category
+            const oldCat = state.categories.find(c => c.name === oldName);
+            if (oldCat) {
+                await window.supabaseClient
+                    .from('categories')
+                    .delete()
+                    .eq('id', oldCat.id);
+            }
+
+            updatedCount++;
+        }
+
+        alert(`Successfully merged ${updatedCount} categories!`);
+        document.getElementById('merge-modal').style.display = 'none';
+        loadData();
+
+    } catch (error) {
+        console.error('Merge Error:', error);
+        alert('Merge failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};
+
 // --- AI Audit Feature ---
 
 // --- AI Audit Feature ---
@@ -1993,6 +2280,8 @@ window.analyzeTransactions = async (transactions, onProgress) => {
             account_name: accountMap[t.account_id] || 'Unknown Account'
         }));
 
+        const existingCategoriesList = state.categories.map(c => c.name).join(', ');
+
         const systemPrompt = `You are a financial auditor. Analyze the provided list of transactions.
         
         YOUR PRIMARY GOAL: Identify "Transfers" that are currently mislabeled as 'income' or 'expense'.
@@ -2005,7 +2294,13 @@ window.analyzeTransactions = async (transactions, onProgress) => {
         If you find such a pair, mark BOTH as "transfer".
 
         YOUR SECONDARY GOAL: Suggest better categories for 'Uncategorized' or generic items.
-        Also, add a short "note" explaining the transaction if possible.
+        
+        CRITICAL INSTRUCTION:
+        You MUST prioritize using one of the following EXISTING CATEGORIES:
+        [${existingCategoriesList}]
+        
+        Only suggest a NEW category if the transaction absolutely does not fit into any of the above.
+        Do not create synonyms (e.g., if "Groceries" exists, do not suggest "Food" or "Supermarket").
 
         Return a JSON object with a key "updates" containing a list of objects. Each object must have:
         - "id": The transaction ID
@@ -2052,6 +2347,46 @@ window.analyzeTransactions = async (transactions, onProgress) => {
     return allUpdates;
 };
 
+// --- Advanced Filtering ---
+window.filterTransactions = () => {
+    const search = document.getElementById('filter-search').value.toLowerCase();
+    const type = document.getElementById('filter-type').value;
+    const category = document.getElementById('filter-category').value;
+    const account = document.getElementById('filter-account').value;
+    const dateFrom = document.getElementById('filter-date-from').value;
+    const dateTo = document.getElementById('filter-date-to').value;
+
+    const filtered = state.transactions.filter(t => {
+        // 1. Search
+        if (search && !t.description.toLowerCase().includes(search) && !(t.notes || '').toLowerCase().includes(search)) {
+            return false;
+        }
+
+        // 2. Type
+        if (type !== 'all' && t.type !== type) {
+            return false;
+        }
+
+        // 3. Category
+        if (category !== 'all' && t.category !== category) {
+            return false;
+        }
+
+        // 4. Account
+        if (account !== 'all' && t.account_id != account) { // Loose equality for string/number match
+            return false;
+        }
+
+        // 5. Date Range
+        if (dateFrom && t.date < dateFrom) return false;
+        if (dateTo && t.date > dateTo) return false;
+
+        return true;
+    });
+
+    document.getElementById('transaction-list-container').innerHTML = renderTransactionList(filtered);
+};
+
 window.autoFillTransaction = async () => {
     const desc = document.getElementById('t-desc').value;
     const amount = document.getElementById('t-amount').value;
@@ -2070,12 +2405,20 @@ window.autoFillTransaction = async () => {
         const openAIKey = localStorage.getItem('openai_api_key');
         if (!openAIKey) throw new Error('Please save your OpenAI API Key first in Settings.');
 
+        const existingCategoriesList = state.categories.map(c => c.name).join(', ');
+
         const prompt = `Analyze this transaction:
         Description: "${desc}"
         Amount: "${amount}"
         
+        Existing Categories: [${existingCategoriesList}]
+
+        Instruction:
+        1. Try to match the description to one of the Existing Categories.
+        2. Only suggest a new category if it's completely different.
+        
         Return a JSON object with:
-        - "category": Best fit category name (e.g., Food, Transport, Salary, Utilities)
+        - "category": Best fit category name
         - "type": "income", "expense", or "transfer"
         - "notes": A short, helpful note (optional)
         `;
