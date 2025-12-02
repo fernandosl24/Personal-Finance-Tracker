@@ -1,2 +1,0 @@
-const SUPABASE_URL = 'https://riqdvzhyrmipurkolrsq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpcWR2emh5cm1pcHVya29scnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ2MTQwNTUsImV4cCI6MjA4MDE5MDA1NX0.0zUqM02xHmOVHCKGiKh9rzkq3VZUt1bFUAqUW7QOWSU';
