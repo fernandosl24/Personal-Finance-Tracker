@@ -489,9 +489,14 @@ function renderSettings() {
         <div class="card" style="max-width: 600px; margin: 2rem auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3><i class="fa-solid fa-tags"></i> Manage Categories</h3>
-                <button class="btn btn-sm btn-primary" onclick="document.getElementById('category-modal').style.display='flex'">
-                    <i class="fa-solid fa-plus"></i> Add Category
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="sync-cat-btn" class="btn btn-sm btn-secondary" onclick="syncCategories()" style="background-color: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary);">
+                        <i class="fa-solid fa-rotate"></i> Sync
+                    </button>
+                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('category-modal').style.display='flex'">
+                        <i class="fa-solid fa-plus"></i> Add Category
+                    </button>
+                </div>
             </div>
             <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
                 Create and manage custom categories for your transactions.
@@ -512,6 +517,9 @@ function renderSettings() {
                                     ${c.type.charAt(0).toUpperCase() + c.type.slice(1)}
                                 </td>
                                 <td style="text-align: right;">
+                                    <button class="btn-icon" onclick="editCategory(${c.id})" style="color: var(--accent-primary); margin-right: 0.5rem;">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
                                     <button class="btn-icon delete-btn" onclick="deleteCategory(${c.id})">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
@@ -529,6 +537,7 @@ function renderSettings() {
                 <span class="close-modal" onclick="document.getElementById('category-modal').style.display='none'">&times;</span>
                 <h2>Add Category</h2>
                 <form id="add-category-form" onsubmit="return handleCategorySubmit(event)">
+                    <input type="hidden" id="cat-id">
                     <div class="form-group">
                         <label>Name</label>
                         <input type="text" id="cat-name" required placeholder="e.g., Subscriptions">
@@ -544,7 +553,7 @@ function renderSettings() {
                         <label>Color</label>
                         <input type="color" id="cat-color" value="#6366f1" style="height: 40px; padding: 0.2rem;">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Save Category</button>
+                    <button type="submit" class="btn btn-primary btn-block" id="cat-submit-btn">Save Category</button>
                 </form>
             </div>
         </div>
@@ -895,8 +904,13 @@ function renderTransactions() {
                     </div>
 
                     <div class="form-group">
-                        <label>Description</label>
-                        <input type="text" id="t-desc" placeholder="Optional note">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="margin-bottom: 0;">Description</label>
+                            <button type="button" id="auto-fill-btn" onclick="autoFillTransaction()" style="font-size: 0.8rem; color: var(--accent-primary); background: none; border: none; cursor: pointer;">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> AI Auto-Fill
+                            </button>
+                        </div>
+                        <input type="text" id="t-desc" placeholder="e.g., Uber Ride">
                     </div>
 
                     <div class="form-group">
@@ -968,6 +982,13 @@ function renderTransactions() {
                     margin-bottom: 1rem;
                     border: 1px solid var(--border-color);
                 ">Waiting for file...</div>
+                
+                <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="csv-ai-analyze">
+                    <label for="csv-ai-analyze" style="cursor: pointer; color: var(--text-primary); font-size: 0.9rem;">
+                        <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent-primary);"></i> Analyze with AI (Categorize & Note)
+                    </label>
+                </div>
                 
                 <button class="btn btn-primary btn-block" onclick="processCSVImport()">Start Bulk Import</button>
             </div>
@@ -1217,9 +1238,10 @@ window.processCSVImport = async () => {
         if (newTransactions.length > 0) {
             logDiv.innerHTML += `Saving ${newTransactions.length} new transactions...<br>`;
 
-            const { error } = await window.supabaseClient
+            const { data: insertedData, error } = await window.supabaseClient
                 .from('transactions')
-                .insert(newTransactions);
+                .insert(newTransactions)
+                .select();
 
             if (error) {
                 console.error(error);
@@ -1261,6 +1283,32 @@ window.processCSVImport = async () => {
 
                 logDiv.innerHTML += `<span style="color: var(--success)">Success! Imported ${importedCount}. Skipped ${skippedCount}.</span>`;
                 loadData();
+
+                // Check for AI Analysis
+                const aiCheckbox = document.getElementById('csv-ai-analyze');
+                if (aiCheckbox && aiCheckbox.checked && insertedData && insertedData.length > 0) {
+                    logDiv.innerHTML += '<br><span style="color: var(--accent-primary)">Running AI Analysis...</span>';
+                    try {
+                        const updates = await window.analyzeTransactions(insertedData, (current, total) => {
+                            logDiv.innerHTML += `<br>Analyzing batch ${current} of ${total}...`;
+                            logDiv.scrollTop = logDiv.scrollHeight;
+                        });
+
+                        if (updates.length > 0) {
+                            setTimeout(() => {
+                                document.getElementById('csv-import-modal').style.display = 'none';
+                                showAuditResults(updates);
+                            }, 1000);
+                            return; // Skip the standard alert
+                        } else {
+                            logDiv.innerHTML += '<br>AI found no changes needed.';
+                        }
+                    } catch (aiErr) {
+                        console.error('AI Error:', aiErr);
+                        logDiv.innerHTML += `<br><span style="color: var(--danger)">AI Error: ${aiErr.message}</span>`;
+                    }
+                }
+
                 setTimeout(() => {
                     document.getElementById('csv-import-modal').style.display = 'none';
                     alert(`Import Complete!\nAdded: ${importedCount}\nSkipped (Duplicates): ${skippedCount}`);
@@ -1775,30 +1823,71 @@ window.processSmartImport = async () => {
 
 // --- Category Management ---
 
+window.editCategory = (id) => {
+    const c = state.categories.find(cat => cat.id === id);
+    if (!c) return;
+
+    document.getElementById('cat-id').value = c.id;
+    document.getElementById('cat-name').value = c.name;
+    document.getElementById('cat-type').value = c.type;
+    document.getElementById('cat-color').value = c.color_code;
+
+    document.getElementById('cat-submit-btn').textContent = 'Update Category';
+    document.getElementById('category-modal').style.display = 'flex';
+};
+
 window.handleCategorySubmit = async (e) => {
     e.preventDefault();
+    const id = document.getElementById('cat-id').value;
     const name = document.getElementById('cat-name').value;
     const type = document.getElementById('cat-type').value;
     const color = document.getElementById('cat-color').value;
 
     try {
-        const { error } = await window.supabaseClient
-            .from('categories')
-            .insert([{
-                user_id: state.user.id,
-                name,
-                type,
-                color_code: color
-            }]);
+        if (id) {
+            // UPDATE existing category
+            const oldCategory = state.categories.find(c => c.id == id);
 
-        if (error) throw error;
+            const { error } = await window.supabaseClient
+                .from('categories')
+                .update({ name, type, color_code: color })
+                .eq('id', id);
 
-        alert('Category added!');
+            if (error) throw error;
+
+            // Cascading Update: If name changed, update transactions
+            if (oldCategory && oldCategory.name !== name) {
+                const { error: cascadeError } = await window.supabaseClient
+                    .from('transactions')
+                    .update({ category: name })
+                    .eq('category', oldCategory.name);
+
+                if (cascadeError) console.error('Cascade Update Failed:', cascadeError);
+            }
+
+            alert('Category updated!');
+        } else {
+            // INSERT new category
+            const { error } = await window.supabaseClient
+                .from('categories')
+                .insert([{
+                    user_id: state.user.id,
+                    name,
+                    type,
+                    color_code: color
+                }]);
+
+            if (error) throw error;
+            alert('Category added!');
+        }
+
         document.getElementById('category-modal').style.display = 'none';
+        document.getElementById('add-category-form').reset();
+        document.getElementById('cat-id').value = ''; // Clear ID
         loadData(); // Refresh UI
     } catch (err) {
         console.error('Category Error:', err);
-        alert('Error adding category: ' + err.message);
+        alert('Error saving category: ' + err.message);
     }
     return false;
 };
@@ -1818,19 +1907,230 @@ window.deleteCategory = async (id) => {
     }
 };
 
-// --- AI Audit Feature ---
+window.syncCategories = async () => {
+    const btn = document.getElementById('sync-cat-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Syncing...';
+
+    try {
+        // 1. Get all unique categories from transactions
+        const transactionCategories = new Set(state.transactions.map(t => t.category).filter(c => c));
+
+        // 2. Get existing categories
+        const existingCategories = new Set(state.categories.map(c => c.name));
+
+        // 3. Find missing
+        const missingCategories = Array.from(transactionCategories).filter(c => !existingCategories.has(c));
+
+        if (missingCategories.length === 0) {
+            alert('All categories are already synced!');
+            return;
+        }
+
+        // 4. Insert missing
+        const newCategoryRows = missingCategories.map(name => ({
+            user_id: state.user.id,
+            name: name,
+            type: 'expense', // Default
+            color_code: '#94a3b8' // Default
+        }));
+
+        const { error } = await window.supabaseClient
+            .from('categories')
+            .insert(newCategoryRows);
+
+        if (error) throw error;
+
+        alert(`Synced ${missingCategories.length} new categories!`);
+        loadData();
+
+    } catch (error) {
+        console.error('Sync Error:', error);
+        alert('Sync failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};
 
 // --- AI Audit Feature ---
 
 // --- AI Audit Feature ---
 
-async function startAIAudit() {
+// --- AI Audit Feature ---
+
+// --- AI Analysis Logic ---
+
+window.analyzeTransactions = async (transactions, onProgress) => {
     const openAIKey = localStorage.getItem('openai_api_key');
-    if (!openAIKey) {
-        alert('Please save your OpenAI API Key first in Settings.');
+    if (!openAIKey) throw new Error('Please save your OpenAI API Key first in Settings.');
+
+    // Create Account Map
+    const accountMap = {};
+    state.accounts.forEach(a => accountMap[a.id] = a.name);
+
+    const BATCH_SIZE = 25;
+    const batches = [];
+    for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+        batches.push(transactions.slice(i, i + BATCH_SIZE));
+    }
+
+    let allUpdates = [];
+
+    for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        if (onProgress) onProgress(i + 1, batches.length);
+
+        // Prepare Prompt for this batch
+        const transactionList = batch.map(t => ({
+            id: t.id,
+            date: t.date,
+            description: t.description,
+            amount: t.amount,
+            category: t.category,
+            type: t.type,
+            account_name: accountMap[t.account_id] || 'Unknown Account'
+        }));
+
+        const systemPrompt = `You are a financial auditor. Analyze the provided list of transactions.
+        
+        YOUR PRIMARY GOAL: Identify "Transfers" that are currently mislabeled as 'income' or 'expense'.
+        A Transfer is typically characterized by:
+        1. Two transactions with the EXACT SAME amount (or very close).
+        2. One is an 'expense' (money leaving Account A) and one is 'income' (money entering Account B).
+        3. They occur on the same date or within 1-2 days of each other.
+        4. Descriptions often mention "Transfer", "Payment", "Credit Card", or the other account's name.
+
+        If you find such a pair, mark BOTH as "transfer".
+
+        YOUR SECONDARY GOAL: Suggest better categories for 'Uncategorized' or generic items.
+        Also, add a short "note" explaining the transaction if possible.
+
+        Return a JSON object with a key "updates" containing a list of objects. Each object must have:
+        - "id": The transaction ID
+        - "new_type": "transfer" (only if it's a transfer)
+        - "new_category": Suggested category (optional)
+        - "new_notes": A short comment/note about the transaction (optional)
+        - "reason": Brief explanation for the change
+        
+        Only include transactions that need changes or notes.`;
+
+        // Call OpenAI API
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAIKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: JSON.stringify(transactionList) }
+                ],
+                response_format: { type: "json_object" }
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || 'OpenAI API Error');
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        const batchUpdates = JSON.parse(content).updates || [];
+        allUpdates = allUpdates.concat(batchUpdates);
+
+        // Small delay to be nice to the API
+        if (i < batches.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    }
+
+    return allUpdates;
+};
+
+window.autoFillTransaction = async () => {
+    const desc = document.getElementById('t-desc').value;
+    const amount = document.getElementById('t-amount').value;
+
+    if (!desc && !amount) {
+        alert('Please enter a description or amount first.');
         return;
     }
 
+    const btn = document.getElementById('auto-fill-btn');
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+    try {
+        const openAIKey = localStorage.getItem('openai_api_key');
+        if (!openAIKey) throw new Error('Please save your OpenAI API Key first in Settings.');
+
+        const prompt = `Analyze this transaction:
+        Description: "${desc}"
+        Amount: "${amount}"
+        
+        Return a JSON object with:
+        - "category": Best fit category name (e.g., Food, Transport, Salary, Utilities)
+        - "type": "income", "expense", or "transfer"
+        - "notes": A short, helpful note (optional)
+        `;
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAIKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-4o",
+                messages: [
+                    { role: "system", content: "You are a financial assistant. Respond in JSON." },
+                    { role: "user", content: prompt }
+                ],
+                response_format: { type: "json_object" }
+            })
+        });
+
+        if (!response.ok) throw new Error('OpenAI API Error');
+        const data = await response.json();
+        const result = JSON.parse(data.choices[0].message.content);
+
+        if (result.category) {
+            // Check if category exists, if not, maybe select 'Uncategorized' or add it?
+            // For now, try to set value. If it doesn't match an option, it won't select.
+            const select = document.getElementById('t-category');
+            let found = false;
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value.toLowerCase() === result.category.toLowerCase()) {
+                    select.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Optional: Add to list dynamically or just put in notes
+                console.warn('Category not found in list:', result.category);
+                // Try to find a partial match or default
+            }
+        }
+        if (result.type) document.getElementById('t-type').value = result.type.toLowerCase();
+        if (result.notes) document.getElementById('t-notes').value = result.notes;
+
+    } catch (error) {
+        console.error('Auto-Fill Error:', error);
+        alert('Auto-Fill failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }
+};
+
+async function startAIAudit() {
     // 1. Get Configured Limit
     const limitSelect = document.getElementById('audit-limit');
     const limitValue = limitSelect ? limitSelect.value : '50';
@@ -1851,92 +2151,15 @@ async function startAIAudit() {
     const originalText = btn.innerHTML;
     btn.disabled = true;
 
-    // Create Account Map
-    const accountMap = {};
-    state.accounts.forEach(a => accountMap[a.id] = a.name);
-
-    const BATCH_SIZE = 25;
-    const batches = [];
-    for (let i = 0; i < transactionsToAnalyze.length; i += BATCH_SIZE) {
-        batches.push(transactionsToAnalyze.slice(i, i + BATCH_SIZE));
-    }
-
-    let allUpdates = [];
-
     try {
-        for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing batch ${i + 1} of ${batches.length}...`;
+        const updates = await window.analyzeTransactions(transactionsToAnalyze, (current, total) => {
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing batch ${current} of ${total}...`;
+        });
 
-            // Prepare Prompt for this batch
-            const transactionList = batch.map(t => ({
-                id: t.id,
-                date: t.date,
-                description: t.description,
-                amount: t.amount,
-                category: t.category,
-                type: t.type,
-                account_name: accountMap[t.account_id] || 'Unknown Account'
-            }));
-
-            const systemPrompt = `You are a financial auditor. Analyze the provided list of transactions.
-            
-            YOUR PRIMARY GOAL: Identify "Transfers" that are currently mislabeled as 'income' or 'expense'.
-            A Transfer is typically characterized by:
-            1. Two transactions with the EXACT SAME amount (or very close).
-            2. One is an 'expense' (money leaving Account A) and one is 'income' (money entering Account B).
-            3. They occur on the same date or within 1-2 days of each other.
-            4. Descriptions often mention "Transfer", "Payment", "Credit Card", or the other account's name.
-
-            If you find such a pair, mark BOTH as "transfer".
-
-            YOUR SECONDARY GOAL: Suggest better categories for 'Uncategorized' or generic items.
-
-            Return a JSON object with a key "updates" containing a list of objects. Each object must have:
-            - "id": The transaction ID
-            - "new_type": "transfer" (only if it's a transfer)
-            - "new_category": Suggested category (optional)
-            - "reason": Brief explanation (e.g., "Matches transaction ID 123 with same amount")
-            
-            Only include transactions that need changes.`;
-
-            // Call OpenAI API
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openAIKey}`
-                },
-                body: JSON.stringify({
-                    model: "gpt-4o",
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: JSON.stringify(transactionList) }
-                    ],
-                    response_format: { type: "json_object" }
-                })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error?.message || 'OpenAI API Error');
-            }
-
-            const data = await response.json();
-            const content = data.choices[0].message.content;
-            const batchUpdates = JSON.parse(content).updates || [];
-            allUpdates = allUpdates.concat(batchUpdates);
-
-            // Small delay to be nice to the API
-            if (i < batches.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-        }
-
-        if (allUpdates.length === 0) {
+        if (updates.length === 0) {
             alert('AI Analysis complete. No changes suggested.');
         } else {
-            showAuditResults(allUpdates);
+            showAuditResults(updates);
         }
 
     } catch (error) {
@@ -2029,6 +2252,32 @@ window.applyAuditChanges = async () => {
     btn.textContent = 'Applying Changes...';
 
     try {
+        // 1. Identify and Create New Categories
+        const newCategories = new Set();
+        updatesToApply.forEach(u => {
+            if (u.new_category) newCategories.add(u.new_category);
+        });
+
+        const existingCategoryNames = new Set(state.categories.map(c => c.name));
+        const categoriesToCreate = Array.from(newCategories).filter(c => !existingCategoryNames.has(c));
+
+        if (categoriesToCreate.length > 0) {
+            console.log('Creating new categories:', categoriesToCreate);
+            const newCategoryRows = categoriesToCreate.map(name => ({
+                user_id: state.user.id,
+                name: name,
+                type: 'expense', // Default to expense, user can change later
+                color_code: '#94a3b8' // Default gray
+            }));
+
+            const { error: catError } = await window.supabaseClient
+                .from('categories')
+                .insert(newCategoryRows);
+
+            if (catError) throw catError;
+        }
+
+        // 2. Update Transactions
         for (const update of updatesToApply) {
             const patch = {};
             if (update.new_type) patch.type = update.new_type;
