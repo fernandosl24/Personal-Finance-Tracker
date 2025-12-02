@@ -1,305 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzBmMDA4MSIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxMiIgZmlsbD0iI2ZmOGMwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTEwIDEySDIyVjE4SDEwVjEyWiIgZmlsbD0iI2ZmZmZmZiIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE0IiByPSIxLjUiIGZpbGw9IiMwZjAwODEiLz4KPHBhdGggZD0iTTE0IDI0QzE0IDI2LjIwOTEgMTUuNzkwOSAyOCAxOCAyOEMyMC4yMDkxIDI4IDIyIDI2LjIwOTEgMjIgMjQiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+">
-    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNCIgZmlsbD0iIzBmMDA4MSIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxMiIgZmlsbD0iI2ZmOGMwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiLz4KPHBhdGggZD0iTTEwIDEySDIyVjE4SDEwVjEyWiIgZmlsbD0iI2ZmZmZmZiIvPgo8Y2lyY2xlIGN4PSIxNiIgY3k9IjE0IiByPSIxLjUiIGZpbGw9IiMwZjAwODEiLz4KPHBhdGggZD0iTTE0IDI0QzE0IDI2LjIwOTEgMTUuNzkwOSAyOCAxOCAyOEMyMC4yMDkxIDI4IDIyIDI2LjIwOTEgMjIgMjQiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+">
-    <link rel="icon" type="image/png" sizes="16x16" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMiIgZmlsbD0iIzBmMDA4MSIvPgo8Y2lyY2xlIGN4PSI4IiBjeT0iOCIgcj0iNiIgZmlsbD0iI2ZmOGMwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEiLz4KPHBhdGggZD0iTTUgNkgxMVY5SDVWNloiIGZpbGw9IiNmZmZmZmYiLz4KPGNpcmNsZSBjeD0iOCIgY3k9IjciIHI9IjAuNSIgZmlsbD0iIzBmMDA4MSIvPgo8cGF0aCBkPSJNNyAxMkM3IDEzLjEwNDYgNy44OTU0MyAxNCA5IDE0QzEwLjEwNDYgMTQgMTEgMTMuMTA0NiAxMSAxMiIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4=">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <link rel="stylesheet" href="style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.css"
-    />
-    <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
 
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
-    />
-    <title>Finance Tracker - A Personal Finance App</title>
-  </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow | Premium Personal Finance</title>
 
-  <body>
-    <!-- Skip to main content for accessibility -->
-    <a href="#main-content" class="skip-link">Skip to main content</a>
-    
-    <nav role="navigation" aria-label="Main navigation">
-      <div class="navbar">
-        <a href="#" class="logo"
-          ><i class="fas fa-chart-line"></i> Finance Tracker</a
-        >
-        <ul class="nav-links">
-          <li><a href="#" class="active">Home</a></li>
-          <li><a href="#tracker">Use Tracker</a></li>
-          <li><a href="#how-it-works">How it works</a></li>
-          <li><a href="#invite">Community</a></li>
-          <li><a href="./support.html">Support</a></li>
-        </ul>
-        
-        <!-- Search Bar -->
-        <div class="search-container">
-          <div class="search-bar">
-            <i class="fas fa-search search-icon" aria-hidden="true"></i>
-            <input type="text" id="search-input" placeholder="Search" class="search-input" aria-label="Search the website" role="searchbox">
-            <div class="search-shortcut" aria-label="Press Ctrl+K or Cmd+K to search">
-              <span class="shortcut-key">⌘</span>
-              <span class="shortcut-key">K</span>
-              <span class="shortcut-separator">/</span>
-              <span class="shortcut-key">Ctrl</span>
-              <span class="shortcut-key">K</span>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Navigation Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-wallet"></i>
+                <span>FinanceFlow</span>
             </div>
-          </div>
-        </div>
-        
-        <div class="buttons">
-          <a href="./login.html" class="btn-head"
-            ><i class="fas fa-sign-in-alt"></i> Log In</a
-          >
-          <a href="./sign-up.html" class="btn-head"
-            ><i class="fas fa-user-plus"></i> Sign Up</a>
-          
-        </div>
-        <div class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation menu" role="button" tabindex="0">
-            <i class="fas fa-bars" aria-hidden="true"></i>
-        </div>
-      </div>
-    </nav>
 
-    <!-- Landing Page Content -->
-    <main id="main-content" role="main">
-    <section class="section-box">
-      <div class="main-landing">
-        <div class="content">
-          <h1 class="under-welcome-h1">Take Control of Your Finances</h1>
-          <div class="under-h1"></div>
-          <p class="under-welcome-p">
-            Track your income and expenses effortlessly. Manage your budget, set
-            financial goals, and make smarter decisions for more secure future.
-          </p>
-          <a href="./sign-up.html" class="under-welcome-btn">Sign Up Now</a>
+            <ul class="nav-links">
+                <li class="active" data-page="dashboard">
+                    <a href="#"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                </li>
+                <li data-page="transactions">
+                    <a href="#"><i class="fa-solid fa-list"></i> Transactions</a>
+                </li>
+                <li data-page="analytics">
+                    <a href="#"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+                </li>
+                <li data-page="accounts">
+                    <a href="#"><i class="fa-solid fa-wallet"></i> Accounts</a>
+                </li>
+                <li data-page="budgets">
+                    <a href="#"><i class="fa-solid fa-chart-pie"></i> Budgets</a>
+                </li>
+                <li data-page="goals">
+                    <a href="#"><i class="fa-solid fa-bullseye"></i> Goals</a>
+                </li>
+                <li>
+                    <a href="#" onclick="exportToCSV()"><i class="fa-solid fa-file-export"></i> Export CSV</a>
+                </li>
+                <li data-page="settings">
+                    <a href="#"><i class="fa-solid fa-cog"></i> Settings</a>
+                </li>
+            </ul>
+
+            <div class="user-profile">
+                <div class="user-info">
+                    <span id="user-name">Loading...</span>
+                    <small id="user-email">...</small>
+                </div>
+                <button id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="page-title">Dashboard</h1>
+                <div class="actions">
+                    <button class="btn btn-primary" id="add-transaction-btn">
+                        <i class="fa-solid fa-plus"></i> Add Transaction
+                    </button>
+                </div>
+            </header>
+
+            <div id="content-area">
+                <!-- Dynamic Content Will Be Loaded Here -->
+                <div class="loading-spinner">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i>
+                </div>
+            </div>
+        </main>
+
+        <!-- Auth Overlay (Login/Signup) -->
+        <div id="auth-overlay" class="auth-overlay">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <i class="fa-solid fa-wallet"></i>
+                    <h2>Welcome Back</h2>
+                    <p>Manage your finances with style.</p>
+                </div>
+
+                <form id="auth-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required placeholder="••••••••">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Sign In</button>
+                    </div>
+
+                    <div class="auth-toggle">
+                        <p>Don't have an account? <a href="#" id="toggle-auth-mode">Sign Up</a></p>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="under-welcome-image">
-          <img src="./assets/makeme.png" alt="Power Finance" />
-        </div>
-      </div>
-    </section>
-    <br />
-    <div class="arrow">
-      <a href="#tracker " class="scroll-link">
-        <span></span>
-      </a>
     </div>
 
-    <section class="main-content" id="tracker">
-      <div class="head-text">
-        <h1>Access Your Personal Finance Tracker</h1>
-        <div class="under-head-text"></div>
-      </div>
-      <br />
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
 
-      <div class="tracker-part">
-        <div class="tracker-balance">
-          Current Balance: <span id="balance" class="current-balance"></span>
-        </div>
-
-        <div class="currency-filter">
-          <div class="filter-left">
-            <label for="currency">Select Currency:</label>
-            <select id="currency" onchange="updateBalance()">
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="INR" selected>INR</option>
-            </select>
-          </div>
-          <div class="filter-right">
-            <label for="text" class="date-box">Choose Date:</label>
-            <input type="date" id="date" placeholder="Date" />
-          </div>
-        </div>
-
-        <div class="transaction-form">
-          <input type="text" id="description" placeholder="Description" />
-          <input type="number" id="amount" placeholder="Amount" />
-          <select id="type">
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-          </select>
-          <button onclick="addTransaction()">Add Transaction</button>
-          <button onclick="handleDownload()">Export</button>
-        </div>
-        <div class="table-part" id="table-part">
-          <table id="transaction-table">
-            <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Type</th>
-              <th>Action</th>
-            </tr>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section class="how-it-works" id="how-it-works">
-      <div class="head-text">
-        <h1>How it works</h1>
-        <div class="under-head-text"></div>
-      </div>
-      <br />
-      <div class="working-content">
-        <div class="left-working">
-          <h5 class="working-head">
-            Experience the power of
-            <span class="text-lightBlue">Personal Finance Tracker</span>
-          </h5>
-          <ul class="ul-items">
-            <li class="check-list-items">
-              <i data-feather="check" class="feather icon-check"></i>
-              <span>Track effortlessly</span>
-            </li>
-            <li class="check-list-items">
-              <i data-feather="check" class="feather icon-check"></i>
-              <span>Control transactions</span>
-            </li>
-            <li class="check-list-items">
-              <i data-feather="check" class="feather icon-check"></i>
-              <span>Customize currencies</span>
-            </li>
-            <li class="check-list-items">
-              <i class="icon-check" data-feather="check"></i>
-              <span>Edit with ease</span>
-            </li>
-            <li class="check-list-items">
-              <i data-feather="check" class="feather icon-check"></i>
-              <span>Real-time balance</span>
-            </li>
-            <li class="check-list-items">
-              <i data-feather="check" class="feather icon-check"></i>
-              <span>Secure data protection</span>
-            </li>
-          </ul>
-          <a href="./sign-up.html" class="sign-up-button-btn">Sign Up Now</a>
-        </div>
-        <div class="right-working-image">
-          <img
-            src="./assets/how-it-works.png"
-            target="_self"
-            alt="Power Finance"
-          />
-        </div>
-      </div>
-    </section>
-
-    <!-- Invite Section -->
-    <section class="invite-section" id="invite">
-      <div class="head-text">
-        <h1>Community Invite</h1>
-        <div class="under-head-text"></div>
-      </div>
-      <br />
-      
-      <div class="invite-container">
-        <div class="invite-card">
-          <div class="invite-header">
-            <h2>Join our community</h2>
-          </div>
-          
-          <div class="invite-content">
-            <div class="email-invite">
-              <input 
-                type="email" 
-                id="invite-email" 
-                placeholder="Enter an email address" 
-                class="email-input"
-              />
-              <button onclick="sendEmailInvite()" class="send-invite-btn">
-                Send invite
-              </button>
-            </div>
-            
-            <div class="social-share">
-              <button onclick="shareOnLinkedIn()" class="linkedin-share-btn">
-                <i class="fab fa-linkedin-in"></i> Share
-              </button>
-              <button onclick="shareOnTwitter()" class="twitter-share-btn">
-                <i class="fab fa-twitter"></i> Tweet
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    </main>
-
-<footer role="contentinfo">
-      <div class="footer-container">
-        <div class="footer-content">
-          <div class="footer-section">
-            <div class="footer-logo">
-              <i class="fas fa-chart-line"></i>
-              <h3>Finance Tracker</h3>
-            </div>
-            <p class="footer-description">
-              Take control of your finances with our comprehensive personal finance tracking tool. 
-              Manage your income, expenses, and financial goals effortlessly.
-            </p>
-            <div class="social-links">
-              <a href="https://github.com/neeraj542/Personal-Finance-Tracker" target="_blank" rel="noopener noreferrer" class="social-link"><i class="fab fa-github"></i></a>
-              <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
-              <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-              <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
-            </div>
-          </div>
-          
-          <div class="footer-section">
-            <h4>Quick Links</h4>
-            <ul class="footer-links">
-              <li><a href="#tracker">Use Tracker</a></li>
-              <li><a href="#how-it-works">How it Works</a></li>
-              <li><a href="#invite">Community</a></li>
-              <li><a href="./support.html">Support</a></li>
-            </ul>
-          </div>
-          
-          <div class="footer-section">
-            <h4>Resources</h4>
-            <ul class="footer-links">
-              <li><a href="#">Privacy Policy</a></li>
-              <li><a href="#">Terms of Service</a></li>
-              <li><a href="#">Contact Us</a></li>
-              <li><a href="#">Help Center</a></li>
-            </ul>
-          </div>
-          
-          <div class="footer-section">
-            <h4>Contact Info</h4>
-            <div class="contact-info">
-              <p><i class="fas fa-envelope"></i> support@financetracker.com</p>
-              <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
-              <p><i class="fas fa-map-marker-alt"></i> New York, NY</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="footer-bottom">
-          <div class="footer-bottom-content">
-            <p>&copy; 2025 Finance Tracker. All rights reserved.</p>
-            <p class="developer-credit">Created by <strong>Neeraj Meena</strong> - Full Stack MERN Developer</p>
-          </div>
-        </div>
-      </div>
-    </footer>
-    <script>
-      feather.replace();
-    </script>
-    <script src="script.js"></script>
-    <script
-      src="https://kit.fontawesome.com/your-font-awesome-kit.js"
-      crossorigin="anonymous"
-    ></script>
-  </body>
 </html>
