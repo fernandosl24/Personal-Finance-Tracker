@@ -1352,7 +1352,7 @@ window.handleTransactionSubmit = async (e) => {
 
         if (error) throw error;
 
-        document.getElementById('add-transaction-modal').style.display = 'none';
+        document.getElementById('transaction-modal').style.display = 'none';
         document.getElementById('add-transaction-form').reset();
         document.getElementById('t-id').value = ''; // Clear ID
         loadData();
