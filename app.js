@@ -1051,13 +1051,17 @@ window.editTransaction = (id) => {
     document.getElementById('t-type').value = t.type;
     document.getElementById('t-amount').value = t.amount;
     document.getElementById('t-category').value = t.category || '';
-    document.getElementById('t-date').value = t.date;
+
+    // Fix Date Format (YYYY-MM-DD)
+    const dateStr = t.date.split('T')[0];
+    document.getElementById('t-date').value = dateStr;
+
     document.getElementById('t-desc').value = t.description || '';
     document.getElementById('t-notes').value = t.notes || '';
     document.getElementById('t-account').value = t.account_id || '';
 
     document.getElementById('t-submit-btn').textContent = 'Update Transaction';
-    document.getElementById('add-transaction-modal').style.display = 'flex';
+    document.getElementById('transaction-modal').style.display = 'flex';
 };
 
 // Global CSV Import Logic
@@ -1362,17 +1366,7 @@ window.handleTransactionSubmit = async (e) => {
     }
 };
 
-document.getElementById('transaction-modal').style.display = 'none';
-loadData();
-    } catch (err) {
-    console.error('Submit Error:', err);
-    alert('Error: ' + err.message);
-} finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = originalBtnText;
-}
-return false;
-};
+
 
 function setupTransactionModal() {
     // No longer needed with global handler
@@ -1769,50 +1763,7 @@ window.processSmartImport = async () => {
 
         alert('Smart Import Successful! Please review the details.');
         document.getElementById('smart-import-modal').style.display = 'none';
-        // --- Category Management ---
 
-        window.handleCategorySubmit = async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('cat-name').value;
-            const type = document.getElementById('cat-type').value;
-            const color = document.getElementById('cat-color').value;
-
-            try {
-                const { error } = await window.supabaseClient
-                    .from('categories')
-                    .insert([{
-                        user_id: state.user.id,
-                        name,
-                        type,
-                        color_code: color
-                    }]);
-
-                if (error) throw error;
-
-                alert('Category added!');
-                document.getElementById('category-modal').style.display = 'none';
-                loadData(); // Refresh UI
-            } catch (err) {
-                console.error('Category Error:', err);
-                alert('Error adding category: ' + err.message);
-            }
-            return false;
-        };
-
-        window.deleteCategory = async (id) => {
-            if (!confirm('Delete this category?')) return;
-            try {
-                const { error } = await window.supabaseClient
-                    .from('categories')
-                    .delete()
-                    .eq('id', id);
-
-                if (error) throw error;
-                loadData();
-            } catch (err) {
-                alert('Error deleting category: ' + err.message);
-            }
-        };
     } catch (error) {
         console.error('Smart Import Error:', error);
         alert('Analysis failed: ' + error.message);
@@ -1821,6 +1772,53 @@ window.processSmartImport = async () => {
         btn.innerHTML = originalText;
     }
 };
+
+// --- Category Management ---
+
+window.handleCategorySubmit = async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('cat-name').value;
+    const type = document.getElementById('cat-type').value;
+    const color = document.getElementById('cat-color').value;
+
+    try {
+        const { error } = await window.supabaseClient
+            .from('categories')
+            .insert([{
+                user_id: state.user.id,
+                name,
+                type,
+                color_code: color
+            }]);
+
+        if (error) throw error;
+
+        alert('Category added!');
+        document.getElementById('category-modal').style.display = 'none';
+        loadData(); // Refresh UI
+    } catch (err) {
+        console.error('Category Error:', err);
+        alert('Error adding category: ' + err.message);
+    }
+    return false;
+};
+
+window.deleteCategory = async (id) => {
+    if (!confirm('Delete this category?')) return;
+    try {
+        const { error } = await window.supabaseClient
+            .from('categories')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        loadData();
+    } catch (err) {
+        alert('Error deleting category: ' + err.message);
+    }
+};
+
+// --- AI Audit Feature ---
 
 // --- AI Audit Feature ---
 
@@ -1852,75 +1850,93 @@ async function startAIAudit() {
     const btn = document.querySelector('button[onclick="startAIAudit()"]');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing...';
+
+    // Create Account Map
+    const accountMap = {};
+    state.accounts.forEach(a => accountMap[a.id] = a.name);
+
+    const BATCH_SIZE = 25;
+    const batches = [];
+    for (let i = 0; i < transactionsToAnalyze.length; i += BATCH_SIZE) {
+        batches.push(transactionsToAnalyze.slice(i, i + BATCH_SIZE));
+    }
+
+    let allUpdates = [];
 
     try {
-        // 2. Prepare Prompt with Account Names
-        // Create a map of account ID to Name for easy lookup
-        const accountMap = {};
-        state.accounts.forEach(a => accountMap[a.id] = a.name);
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing batch ${i + 1} of ${batches.length}...`;
 
-        const transactionList = transactionsToAnalyze.map(t => ({
-            id: t.id,
-            date: t.date,
-            description: t.description,
-            amount: t.amount,
-            category: t.category,
-            type: t.type,
-            account_name: accountMap[t.account_id] || 'Unknown Account'
-        }));
+            // Prepare Prompt for this batch
+            const transactionList = batch.map(t => ({
+                id: t.id,
+                date: t.date,
+                description: t.description,
+                amount: t.amount,
+                category: t.category,
+                type: t.type,
+                account_name: accountMap[t.account_id] || 'Unknown Account'
+            }));
 
-        const systemPrompt = `You are a financial auditor. Analyze the provided list of transactions.
-        
-        YOUR PRIMARY GOAL: Identify "Transfers" that are currently mislabeled as 'income' or 'expense'.
-        A Transfer is typically characterized by:
-        1. Two transactions with the EXACT SAME amount (or very close).
-        2. One is an 'expense' (money leaving Account A) and one is 'income' (money entering Account B).
-        3. They occur on the same date or within 1-2 days of each other.
-        4. Descriptions often mention "Transfer", "Payment", "Credit Card", or the other account's name.
+            const systemPrompt = `You are a financial auditor. Analyze the provided list of transactions.
+            
+            YOUR PRIMARY GOAL: Identify "Transfers" that are currently mislabeled as 'income' or 'expense'.
+            A Transfer is typically characterized by:
+            1. Two transactions with the EXACT SAME amount (or very close).
+            2. One is an 'expense' (money leaving Account A) and one is 'income' (money entering Account B).
+            3. They occur on the same date or within 1-2 days of each other.
+            4. Descriptions often mention "Transfer", "Payment", "Credit Card", or the other account's name.
 
-        If you find such a pair, mark BOTH as "transfer".
+            If you find such a pair, mark BOTH as "transfer".
 
-        YOUR SECONDARY GOAL: Suggest better categories for 'Uncategorized' or generic items.
+            YOUR SECONDARY GOAL: Suggest better categories for 'Uncategorized' or generic items.
 
-        Return a JSON object with a key "updates" containing a list of objects. Each object must have:
-        - "id": The transaction ID
-        - "new_type": "transfer" (only if it's a transfer)
-        - "new_category": Suggested category (optional)
-        - "reason": Brief explanation (e.g., "Matches transaction ID 123 with same amount")
-        
-        Only include transactions that need changes.`;
+            Return a JSON object with a key "updates" containing a list of objects. Each object must have:
+            - "id": The transaction ID
+            - "new_type": "transfer" (only if it's a transfer)
+            - "new_category": Suggested category (optional)
+            - "reason": Brief explanation (e.g., "Matches transaction ID 123 with same amount")
+            
+            Only include transactions that need changes.`;
 
-        // 3. Call OpenAI API
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openAIKey}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4o",
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: JSON.stringify(transactionList) }
-                ],
-                response_format: { type: "json_object" }
-            })
-        });
+            // Call OpenAI API
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openAIKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: JSON.stringify(transactionList) }
+                    ],
+                    response_format: { type: "json_object" }
+                })
+            });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || 'OpenAI API Error');
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error?.message || 'OpenAI API Error');
+            }
+
+            const data = await response.json();
+            const content = data.choices[0].message.content;
+            const batchUpdates = JSON.parse(content).updates || [];
+            allUpdates = allUpdates.concat(batchUpdates);
+
+            // Small delay to be nice to the API
+            if (i < batches.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
         }
 
-        const data = await response.json();
-        const content = data.choices[0].message.content;
-        const updates = JSON.parse(content).updates || [];
-
-        if (updates.length === 0) {
+        if (allUpdates.length === 0) {
             alert('AI Analysis complete. No changes suggested.');
         } else {
-            showAuditResults(updates);
+            showAuditResults(allUpdates);
         }
 
     } catch (error) {
