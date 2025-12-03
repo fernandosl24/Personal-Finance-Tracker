@@ -1,17 +1,18 @@
-// Authentication Logic
+import { supabaseClient } from './supabaseClient.js';
+import { validatePassword } from './utils.js';
 
 /**
  * Handles user sign up.
  * @param {Event} e - The submit event.
  */
-window.handleSignUp = async (e) => {
+export const handleSignUp = async (e) => {
     e.preventDefault();
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
     const name = document.getElementById('signup-name').value;
 
     // Validation
-    const validationError = window.validatePassword(password);
+    const validationError = validatePassword(password);
     if (validationError) {
         alert(validationError);
         return;
@@ -19,7 +20,7 @@ window.handleSignUp = async (e) => {
 
     try {
         // 1. Sign Up
-        const { data, error } = await window.supabaseClient.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -31,7 +32,7 @@ window.handleSignUp = async (e) => {
 
         // 2. Create User Profile in 'users' table
         if (data.user) {
-            const { error: profileError } = await window.supabaseClient
+            const { error: profileError } = await supabaseClient
                 .from('users')
                 .insert([{
                     id: data.user.id,
@@ -54,7 +55,7 @@ window.handleSignUp = async (e) => {
  * Handles user login.
  * @param {Event} e - The submit event.
  */
-window.handleLogin = async (e) => {
+export const handleLogin = async (e) => {
     console.log('handleLogin called');
     if (e) {
         e.preventDefault();
@@ -65,7 +66,7 @@ window.handleLogin = async (e) => {
     console.log('Credentials retrieved:', email, '***');
 
     try {
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
         });
@@ -82,9 +83,9 @@ window.handleLogin = async (e) => {
 /**
  * Handles user logout.
  */
-window.handleLogout = async () => {
+export const handleLogout = async () => {
     try {
-        const { error } = await window.supabaseClient.auth.signOut();
+        const { error } = await supabaseClient.auth.signOut();
         if (error) throw error;
         window.navigateTo('login');
     } catch (error) {

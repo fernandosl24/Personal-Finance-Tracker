@@ -1,7 +1,15 @@
-// Chart Rendering Logic
+import { getCategoryColor } from './utils.js';
 
-window.renderSpendingChart = (transactions) => {
-    const ctx = document.getElementById('spendingChart').getContext('2d');
+// Store chart instances to destroy them later
+let spendingChartInstance = null;
+let analyticsCategoryChartInstance = null;
+let analyticsTrendChartInstance = null;
+let analyticsDailyChartInstance = null;
+
+export const renderSpendingChart = (transactions) => {
+    const canvas = document.getElementById('spendingChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     // Group expenses by category (Exclude Transfers)
     const expensesByCategory = {};
@@ -14,7 +22,7 @@ window.renderSpendingChart = (transactions) => {
 
     const labels = Object.keys(expensesByCategory);
     const data = Object.values(expensesByCategory);
-    const colors = labels.map(l => window.getCategoryColor(l));
+    const colors = labels.map(l => getCategoryColor(l));
 
     if (labels.length === 0) {
         // Show empty state if no data
@@ -22,11 +30,11 @@ window.renderSpendingChart = (transactions) => {
     }
 
     // Destroy existing chart instance if it exists
-    if (window.spendingChartInstance) {
-        window.spendingChartInstance.destroy();
+    if (spendingChartInstance) {
+        spendingChartInstance.destroy();
     }
 
-    window.spendingChartInstance = new Chart(ctx, {
+    spendingChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: labels,
@@ -48,8 +56,10 @@ window.renderSpendingChart = (transactions) => {
     });
 };
 
-window.renderAnalyticsCategoryChart = (transactions) => {
-    const ctx = document.getElementById('analyticsCategoryChart').getContext('2d');
+export const renderAnalyticsCategoryChart = (transactions) => {
+    const canvas = document.getElementById('analyticsCategoryChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     const expensesByCategory = {};
     transactions
@@ -61,11 +71,11 @@ window.renderAnalyticsCategoryChart = (transactions) => {
 
     const labels = Object.keys(expensesByCategory);
     const data = Object.values(expensesByCategory);
-    const colors = labels.map(l => window.getCategoryColor(l));
+    const colors = labels.map(l => getCategoryColor(l));
 
-    if (window.analyticsCategoryChartInstance) window.analyticsCategoryChartInstance.destroy();
+    if (analyticsCategoryChartInstance) analyticsCategoryChartInstance.destroy();
 
-    window.analyticsCategoryChartInstance = new Chart(ctx, {
+    analyticsCategoryChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: labels,
@@ -84,8 +94,10 @@ window.renderAnalyticsCategoryChart = (transactions) => {
     });
 };
 
-window.renderAnalyticsTrendChart = (transactions) => {
-    const ctx = document.getElementById('analyticsTrendChart').getContext('2d');
+export const renderAnalyticsTrendChart = (transactions) => {
+    const canvas = document.getElementById('analyticsTrendChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     // Group by Month (Last 6 Months)
     const months = {};
@@ -110,9 +122,9 @@ window.renderAnalyticsTrendChart = (transactions) => {
     const incomeData = Object.values(months).map(m => m.income);
     const expenseData = Object.values(months).map(m => m.expense);
 
-    if (window.analyticsTrendChartInstance) window.analyticsTrendChartInstance.destroy();
+    if (analyticsTrendChartInstance) analyticsTrendChartInstance.destroy();
 
-    window.analyticsTrendChartInstance = new Chart(ctx, {
+    analyticsTrendChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
@@ -151,8 +163,10 @@ window.renderAnalyticsTrendChart = (transactions) => {
     });
 };
 
-window.renderAnalyticsDailyChart = (transactions) => {
-    const ctx = document.getElementById('analyticsDailyChart').getContext('2d');
+export const renderAnalyticsDailyChart = (transactions) => {
+    const canvas = document.getElementById('analyticsDailyChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     // Daily spending for current month
     const today = new Date();
@@ -169,9 +183,9 @@ window.renderAnalyticsDailyChart = (transactions) => {
             }
         });
 
-    if (window.analyticsDailyChartInstance) window.analyticsDailyChartInstance.destroy();
+    if (analyticsDailyChartInstance) analyticsDailyChartInstance.destroy();
 
-    window.analyticsDailyChartInstance = new Chart(ctx, {
+    analyticsDailyChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: days,

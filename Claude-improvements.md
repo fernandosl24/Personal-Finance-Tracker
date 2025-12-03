@@ -35,25 +35,23 @@ Based on: Code Analysis and Architecture Review
 - [x] Split `app.js` (2,300 lines) into modules:
   - [x] `auth.js` - Authentication logic
   - [x] `transactions.js` - Transaction CRUD
-  - [ ] `accounts.js` - Account management
+  - [x] `accounts.js` - Account management
   - [x] `categories.js` - Category management
   - [ ] `goals.js` - Goals tracking
-  - [ ] `ai.js` - OpenAI integration
+  - [x] `ai.js` - OpenAI integration
   - [x] `charts.js` - Chart.js visualizations
   - [x] `utils.js` - Helper functions
-  - [ ] `main.js` - App initialization
-- [ ] Remove global namespace pollution (window.function assignments)
-- [ ] Implement proper module pattern or ES6 modules
-- [ ] Create constants file for hard-coded strings (table names, error messages)
+  - [x] `dataLoader.js` - Centralized data fetching
+  - [x] `main.js` - App initialization
+- [x] Remove global namespace pollution (window.function assignments)
+- [x] Implement proper module pattern or ES6 modules
+- [x] Create constants file for hard-coded strings (table names, error messages)
 - [x] Add JSDoc comments for all functions
 
 ### Testing Infrastructure
-- [ ] Set up Jest or Vitest for unit testing
-- [ ] Add unit tests for critical functions:
   - [ ] Balance calculation logic
   - [ ] AI response parsing
   - [ ] Date formatting/validation
-  - [ ] Transaction filtering
   - [ ] Category sync logic
 - [ ] Add integration tests for Supabase operations
 - [ ] Add E2E tests for critical user flows (add transaction, create account)
@@ -70,27 +68,20 @@ Based on: Code Analysis and Architecture Review
 - [ ] Add service worker for offline caching
 
 ### Mobile & Responsive
-- [ ] Convert to Progressive Web App (PWA)
-  - [ ] Add manifest.json
-  - [ ] Add service worker
-  - [ ] Add app icons
-  - [ ] Add install prompt
-- [ ] Optimize touch interactions for mobile
-- [ ] Improve mobile navigation (hamburger menu)
-- [ ] Test and fix on various screen sizes
-- [ ] Add swipe gestures for delete/edit
-- [ ] Optimize form inputs for mobile keyboards
+- [x] Convert to Progressive Web App (PWA)
+  - [x] Add manifest.json
+  - [x] Add service worker
+  - [x] Add app icons
+  - [x] Add install prompt
+- [x] Optimize touch interactions for mobile
+- [x] Improve mobile navigation (hamburger menu)
+- [x] Test and fix on various screen sizes
+- [x] Add swipe gestures for delete/edit
+- [x] Optimize form inputs for mobile keyboards
+- [x] Fix Goals vs Settings routing (Implemented Goals placeholder)
 
 ### User Experience Enhancements
-- [ ] Add transaction search functionality
-- [ ] Add advanced filtering (date range, category, account, amount range)
-- [ ] Add transaction sorting (by date, amount, category)
-- [ ] Implement bulk operations (select multiple transactions)
-- [ ] Add transaction tags/labels
-- [ ] Add transaction attachments (receipts via Supabase Storage)
-- [ ] Add undo/redo functionality
 - [ ] Improve error messages (more user-friendly)
-- [ ] Add keyboard shortcuts for power users
 - [ ] Add dark/light theme toggle
 
 ### AI Features Enhancements

@@ -24,6 +24,9 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
 </head>
 
 <body>
@@ -34,102 +37,88 @@
                 <i class="fa-solid fa-wallet"></i>
                 <span>FinanceFlow</span>
             </div>
-
             <ul class="nav-links">
-                <li class="active" data-page="dashboard">
-                    <a href="#"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                <li class="active" data-page="dashboard"><a href="#"><i class="fa-solid fa-chart-pie"></i>
+                        <span>Dashboard</span></a></li>
+                <li data-page="transactions"><a href="#"><i class="fa-solid fa-list"></i> <span>Transactions</span></a>
                 </li>
-                <li data-page="transactions">
-                    <a href="#"><i class="fa-solid fa-list"></i> Transactions</a>
+                <li data-page="analytics"><a href="#"><i class="fa-solid fa-chart-line"></i> <span>Analytics</span></a>
                 </li>
-                <li data-page="analytics">
-                    <a href="#"><i class="fa-solid fa-chart-line"></i> Analytics</a>
-                </li>
-                <li data-page="accounts">
-                    <a href="#"><i class="fa-solid fa-wallet"></i> Accounts</a>
-                </li>
-                <li data-page="budgets">
-                    <a href="#"><i class="fa-solid fa-chart-pie"></i> Budgets</a>
-                </li>
-                <li data-page="goals">
-                    <a href="#"><i class="fa-solid fa-bullseye"></i> Goals</a>
-                </li>
-                <li>
-                    <a href="#" onclick="exportToCSV()"><i class="fa-solid fa-file-export"></i> Export CSV</a>
-                </li>
-                <li data-page="settings">
-                    <a href="#"><i class="fa-solid fa-cog"></i> Settings</a>
-                </li>
+                <li data-page="accounts"><a href="#"><i class="fa-solid fa-building-columns"></i>
+                        <span>Accounts</span></a></li>
+                <li data-page="settings"><a href="#"><i class="fa-solid fa-gear"></i> <span>Settings</span></a></li>
+                <li data-page="goals"><a href="#"><i class="fa-solid fa-bullseye"></i> <span>Goals</span></a></li>
             </ul>
 
             <div class="user-profile">
                 <div class="user-info">
-                    <span id="user-name">Loading...</span>
-                    <small id="user-email">...</small>
+                    <span id="user-email">user@example.com</span>
+                    <small>Free Plan</small>
                 </div>
                 <button id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </nav>
 
-        <!-- Main Content Area -->
+        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-bar">
-                <h1 id="page-title">Dashboard</h1>
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="btn-icon mobile-menu-btn" id="mobile-menu-btn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
                 <div class="actions">
                     <button class="btn btn-primary" id="add-transaction-btn">
-                        <i class="fa-solid fa-plus"></i> Add Transaction
+                        <i class="fa-solid fa-plus"></i> <span class="hide-mobile">Add Transaction</span>
                     </button>
                 </div>
-            </header>
-
+            </div>
             <div id="content-area">
-                <!-- Dynamic Content Will Be Loaded Here -->
+                <!-- Dynamic Content Loaded Here -->
                 <div class="loading-spinner">
                     <i class="fa-solid fa-circle-notch fa-spin"></i>
                 </div>
             </div>
         </main>
+    </div> <!-- Auth Overlay (Login/Signup) -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <i class="fa-solid fa-wallet"></i>
+                <h2>Welcome Back</h2>
+                <p>Manage your finances with style.</p>
+            </div>
 
-        <!-- Auth Overlay (Login/Signup) -->
-        <div id="auth-overlay" class="auth-overlay">
-            <div class="auth-card">
-                <div class="auth-header">
-                    <i class="fa-solid fa-wallet"></i>
-                    <h2>Welcome Back</h2>
-                    <p>Manage your finances with style.</p>
+            <form id="auth-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="name@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" id="amount" step="0.01" placeholder="0.00" inputmode="decimal" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="••••••••">
                 </div>
 
-                <form id="auth-form">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" required placeholder="name@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" required placeholder="••••••••">
-                    </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Sign In</button>
+                </div>
 
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary btn-block" id="auth-submit-btn">Sign In</button>
-                    </div>
-
-                    <div class="auth-toggle">
-                        <p>Don't have an account? <a href="#" id="toggle-auth-mode">Sign Up</a></p>
-                    </div>
-                </form>
-            </div>
+                <div class="auth-toggle">
+                    <p>Don't have an account? <a href="#" id="toggle-auth-mode">Sign Up</a></p>
+                </div>
+            </form>
         </div>
+    </div>
     </div>
 
     <!-- App Logic -->
-    <script src="config_v2.js"></script>
-    <script src="state.js"></script>
-    <script src="utils.js"></script>
-    <script src="auth.js"></script>
-    <script src="categories.js"></script>
-    <script src="transactions.js"></script>
-    <script src="charts.js"></script>
-    <script src="app_v2.js"></script>
+    <!-- App Logic -->
+    <script type="module" src="main.js"></script>
 </body>
 
 </html>

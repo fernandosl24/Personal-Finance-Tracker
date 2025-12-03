@@ -1,10 +1,13 @@
-// Category Management Logic
+import { supabaseClient } from './supabaseClient.js';
+import { state } from './state.js';
+import { sanitizeInput, validateCategory, getRandomColor } from './utils.js';
+import { loadData } from './dataLoader.js';
 
 /**
  * Handles the submission of the category form (Add/Edit).
  * @param {Event} e - The submit event.
  */
-window.handleCategorySubmit = async (e) => {
+export const handleCategorySubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('cat-submit-btn');
     const originalText = btn.textContent;
@@ -12,12 +15,12 @@ window.handleCategorySubmit = async (e) => {
     btn.textContent = 'Saving...';
 
     const id = document.getElementById('cat-id').value;
-    const name = window.sanitizeInput(document.getElementById('cat-name').value.trim());
+    const name = sanitizeInput(document.getElementById('cat-name').value.trim());
     const type = document.getElementById('cat-type').value;
     const color = document.getElementById('cat-color').value;
 
     // Validation
-    const validationError = window.validateCategory({ name });
+    const validationError = validateCategory({ name });
     if (validationError) {
         alert(validationError);
         btn.disabled = false;
@@ -28,9 +31,9 @@ window.handleCategorySubmit = async (e) => {
     try {
         if (id) {
             // UPDATE existing category
-            const oldCategory = window.state.categories.find(c => c.id == id);
+            const oldCategory = state.categories.find(c => c.id == id);
 
-            const { error } = await window.supabaseClient
+            const { error } = await supabaseClient
                 .from('categories')
                 .update({ name, type, color_code: color })
                 .eq('id', id);
@@ -39,7 +42,7 @@ window.handleCategorySubmit = async (e) => {
 
             // Cascading Update: If name changed, update transactions
             if (oldCategory && oldCategory.name !== name) {
-                const { error: cascadeError } = await window.supabaseClient
+                const { error: cascadeError } = await supabaseClient
                     .from('transactions')
                     .update({ category: name })
                     .eq('category', oldCategory.name);
@@ -50,10 +53,10 @@ window.handleCategorySubmit = async (e) => {
             alert('Category updated!');
         } else {
             // INSERT new category
-            const { error } = await window.supabaseClient
+            const { error } = await supabaseClient
                 .from('categories')
                 .insert([{
-                    user_id: window.state.user.id,
+                    user_id: state.user.id,
                     name,
                     type,
                     color_code: color
@@ -66,7 +69,7 @@ window.handleCategorySubmit = async (e) => {
         document.getElementById('category-modal').style.display = 'none';
         document.getElementById('add-category-form').reset();
         document.getElementById('cat-id').value = ''; // Clear ID
-        window.loadData(); // Refresh UI
+        loadData(); // Refresh UI
     } catch (err) {
         console.error('Category Error:', err);
         alert('Error saving category: ' + err.message);
@@ -81,16 +84,16 @@ window.handleCategorySubmit = async (e) => {
  * Deletes a category by ID.
  * @param {string} id - The category ID.
  */
-window.deleteCategory = async (id) => {
+export const deleteCategory = async (id) => {
     if (!confirm('Delete this category? Associated transactions will be marked as "Uncategorized".')) return;
 
     try {
         // 1. Get Category Name
-        const category = window.state.categories.find(c => c.id == id);
+        const category = state.categories.find(c => c.id == id);
         if (!category) return;
 
         // 2. Update Transactions to 'Uncategorized'
-        const { error: updateError } = await window.supabaseClient
+        const { error: updateError } = await supabaseClient
             .from('transactions')
             .update({ category: 'Uncategorized' })
             .eq('category', category.name);
@@ -98,13 +101,13 @@ window.deleteCategory = async (id) => {
         if (updateError) throw updateError;
 
         // 3. Delete Category
-        const { error } = await window.supabaseClient
+        const { error } = await supabaseClient
             .from('categories')
             .delete()
             .eq('id', id);
 
         if (error) throw error;
-        window.loadData();
+        loadData();
     } catch (err) {
         console.error('Delete Error:', err);
         alert('Error deleting category: ' + err.message);
@@ -115,8 +118,8 @@ window.deleteCategory = async (id) => {
  * Opens the edit modal for a category.
  * @param {string} id - The category ID.
  */
-window.editCategory = (id) => {
-    const c = window.state.categories.find(cat => cat.id === id);
+export const editCategory = (id) => {
+    const c = state.categories.find(cat => cat.id === id);
     if (!c) return;
 
     document.getElementById('cat-id').value = c.id;
@@ -131,7 +134,7 @@ window.editCategory = (id) => {
 /**
  * Syncs categories from transactions to the categories table.
  */
-window.syncCategories = async () => {
+export const syncCategories = async () => {
     const btn = document.getElementById('sync-cat-btn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
@@ -139,8 +142,8 @@ window.syncCategories = async () => {
 
     try {
         // 1. Get all unique categories from transactions
-        const txCategories = [...new Set(window.state.transactions.map(t => t.category))];
-        const existingCategories = window.state.categories.map(c => c.name);
+        const txCategories = [...new Set(state.transactions.map(t => t.category))];
+        const existingCategories = state.categories.map(c => c.name);
 
         // 2. Find missing ones
         const missing = txCategories.filter(c => c && c !== 'Uncategorized' && !existingCategories.includes(c));
@@ -152,20 +155,20 @@ window.syncCategories = async () => {
 
         // 3. Insert missing
         const newCats = missing.map(name => ({
-            user_id: window.state.user.id,
+            user_id: state.user.id,
             name: name,
             type: 'expense', // Default
-            color_code: window.getRandomColor()
+            color_code: getRandomColor()
         }));
 
-        const { error } = await window.supabaseClient
+        const { error } = await supabaseClient
             .from('categories')
             .insert(newCats);
 
         if (error) throw error;
 
         alert(`Synced ${missing.length} categories!`);
-        window.loadData();
+        loadData();
 
     } catch (err) {
         console.error('Sync Error:', err);
@@ -179,7 +182,7 @@ window.syncCategories = async () => {
 /**
  * Optimizes categories by finding duplicates and synonyms using AI.
  */
-window.optimizeCategories = async () => {
+export const optimizeCategories = async () => {
     try {
         const openAIKey = localStorage.getItem('openai_api_key');
         if (!openAIKey) throw new Error('Please save your OpenAI API Key first in Settings.');
@@ -188,7 +191,7 @@ window.optimizeCategories = async () => {
         const uniqueNames = new Set();
         const duplicates = [];
 
-        window.state.categories.forEach(c => {
+        state.categories.forEach(c => {
             const name = c.name.trim();
             const lowerName = name.toLowerCase();
             if (uniqueNames.has(lowerName)) {
@@ -261,7 +264,7 @@ window.optimizeCategories = async () => {
         if (allMerges.length === 0) {
             alert('Your categories are already optimized!');
         } else {
-            window.showMergeReviewModal(allMerges);
+            showMergeReviewModal(allMerges);
         }
 
     } catch (error) {
@@ -270,7 +273,7 @@ window.optimizeCategories = async () => {
     }
 };
 
-window.showMergeReviewModal = (merges) => {
+const showMergeReviewModal = (merges) => {
     const modal = document.createElement('div');
     modal.id = 'merge-modal';
     modal.className = 'modal';
@@ -290,7 +293,7 @@ window.showMergeReviewModal = (merges) => {
 
     modal.innerHTML = `
         <div class="modal-content">
-            <span class="close-modal" onclick="document.getElementById('${modalId}').remove()">&times;</span>
+            <span class="close-modal" id="close-merge-modal">&times;</span>
             <h2><i class="fa-solid fa-broom"></i> Review Category Merges</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                 Select the merges you want to apply. This will update all transactions and delete the old categories.
@@ -308,7 +311,7 @@ window.showMergeReviewModal = (merges) => {
                     <tbody>${rows}</tbody>
                 </table>
             </div>
-            <button class="btn btn-primary btn-block" onclick="window.applyCategoryMerges()">
+            <button class="btn btn-primary btn-block" id="apply-merge-btn">
                 Merge Selected
             </button>
         </div>
@@ -316,9 +319,13 @@ window.showMergeReviewModal = (merges) => {
 
     document.body.appendChild(modal);
     modal.style.display = 'flex';
+
+    // Attach listeners
+    document.getElementById('close-merge-modal').onclick = () => document.getElementById(modalId).remove();
+    document.getElementById('apply-merge-btn').onclick = applyCategoryMerges;
 };
 
-window.applyCategoryMerges = async () => {
+const applyCategoryMerges = async () => {
     const checks = document.querySelectorAll('.merge-check:checked');
     const mergesToApply = Array.from(checks).map(c => ({
         old_name: c.dataset.old,
@@ -340,27 +347,27 @@ window.applyCategoryMerges = async () => {
             const oldName = merge.old_name.trim();
 
             // 1. Ensure New Category Exists (Case-Insensitive Check)
-            let newCat = window.state.categories.find(c => c.name.toLowerCase() === newName.toLowerCase());
+            let newCat = state.categories.find(c => c.name.toLowerCase() === newName.toLowerCase());
 
             if (!newCat) {
                 // Determine type/color from old category or default
-                const oldCat = window.state.categories.find(c => c.name === oldName);
+                const oldCat = state.categories.find(c => c.name === oldName);
 
                 // Double check DB to avoid race conditions/duplicates
-                const { data: existing, error: searchError } = await window.supabaseClient
+                const { data: existing, error: searchError } = await supabaseClient
                     .from('categories')
                     .select('*')
                     .ilike('name', newName)
-                    .eq('user_id', window.state.user.id);
+                    .eq('user_id', state.user.id);
 
                 if (existing && existing.length > 0) {
                     newCat = existing[0];
                 } else {
                     // Insert new
-                    const { data, error } = await window.supabaseClient
+                    const { data, error } = await supabaseClient
                         .from('categories')
                         .insert([{
-                            user_id: window.state.user.id,
+                            user_id: state.user.id,
                             name: newName,
                             type: oldCat ? oldCat.type : 'expense',
                             color_code: oldCat ? oldCat.color_code : '#94a3b8'
@@ -373,7 +380,7 @@ window.applyCategoryMerges = async () => {
             }
 
             // 2. Update Transactions
-            const { error: txError } = await window.supabaseClient
+            const { error: txError } = await supabaseClient
                 .from('transactions')
                 .update({ category: newName })
                 .eq('category', oldName);
@@ -381,9 +388,9 @@ window.applyCategoryMerges = async () => {
             if (txError) throw txError;
 
             // 3. Delete Old Category
-            const oldCat = window.state.categories.find(c => c.name === oldName);
+            const oldCat = state.categories.find(c => c.name === oldName);
             if (oldCat) {
-                await window.supabaseClient
+                await supabaseClient
                     .from('categories')
                     .delete()
                     .eq('id', oldCat.id);

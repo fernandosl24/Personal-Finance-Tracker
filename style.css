@@ -357,63 +357,242 @@ body {
     color: var(--danger);
 }
 
-/* Responsive */
+/* --- Mobile & Responsive Styles --- */
+
+/* Mobile Overlay */
+.mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    /* Below sidebar, above content */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+    backdrop-filter: blur(2px);
+}
+
+.mobile-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    display: none;
+    /* Hidden on desktop */
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    color: var(--text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Responsive Breakpoints */
 @media (max-width: 768px) {
+
+    /* Layout */
     #app {
         flex-direction: column;
     }
 
+    /* Sidebar (Drawer Mode) */
     .sidebar {
-        width: 100%;
-        flex-direction: row;
-        align-items: center;
-        padding: var(--spacing-sm);
-        height: 60px;
-        overflow-x: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 280px;
+        z-index: 1050;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+        flex-direction: column;
+        /* Reset from row if it was changed */
+        padding: var(--spacing-md);
+        overflow-y: auto;
+        align-items: stretch;
+        /* Ensure full width */
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
     }
 
     .logo span,
     .user-profile {
-        display: none;
+        display: flex;
+        /* Restore visibility in drawer */
     }
 
     .nav-links {
-        display: flex;
-        gap: var(--spacing-sm);
-        margin: 0;
+        display: block;
+        /* Stack links vertically */
+        margin-top: 1rem;
+        margin-left: 0;
+        gap: 0;
     }
 
     .nav-links li {
-        margin: 0;
+        margin-bottom: 0.5rem;
     }
 
     .nav-links a span {
+        display: inline;
+        /* Show text */
+    }
+
+    /* Top Bar */
+    .mobile-menu-btn {
+        display: block;
+    }
+
+    .hide-mobile {
         display: none;
+    }
+
+    .top-bar h1 {
+        font-size: 1.2rem;
+    }
+
+    /* Content Area */
+    #content-area {
+        padding: var(--spacing-sm);
+    }
+
+    /* Dashboard Grid */
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+        /* Force single column */
+    }
+
+    /* Tables */
+    .transaction-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .transaction-table th,
+    .transaction-table td {
+        padding: 0.8rem;
+    }
+
+    /* Modals */
+    .modal-content {
+        width: 95%;
+        padding: 1.5rem;
+        max-height: 85vh;
+    }
+
+    /* Touch Targets */
+    .btn,
+    .nav-links a,
+    .form-group input,
+    .form-group select {
+        min-height: 44px;
+        /* Apple Human Interface Guidelines */
     }
 }
 
-/* Tables */
-.transaction-table {
-    width: 100%;
-    border-collapse: collapse;
+/* Transaction List */
+.transaction-list {
+    list-style: none;
     margin-top: var(--spacing-sm);
 }
 
-.transaction-table th,
-.transaction-table td {
-    padding: 1rem;
-    text-align: left;
+.transaction-item {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
     border-bottom: 1px solid var(--border-color);
 }
 
-.transaction-table th {
-    color: var(--text-secondary);
-    font-weight: 500;
-    font-size: 0.9rem;
+.transaction-item:last-child {
+    border-bottom: none;
 }
 
-.transaction-table tr:last-child td {
-    border-bottom: none;
+.tx-content {
+    background-color: var(--bg-card);
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 1rem;
+    transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover .tx-content {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.tx-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.tx-category-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.tx-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.tx-desc {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.tx-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.tx-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.tx-amount {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.tx-amount.income {
+    color: var(--success);
+}
+
+.tx-amount.expense {
+    color: var(--text-primary);
+}
+
+.tx-actions {
+    display: flex;
+    gap: 0.5rem;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.transaction-item:hover .tx-actions {
+    opacity: 1;
 }
 
 .badge {
@@ -483,4 +662,43 @@ body {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
+}
+
+/* Swipe Gestures */
+.transaction-item {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.tx-content {
+    background-color: var(--bg-card);
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    transition: transform 0.3s ease;
+}
+
+.swipe-action {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+    background-color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 2rem;
+    color: white;
+    font-size: 1.2rem;
+    z-index: 1;
+}
+
+.transaction-item.swiped .tx-content {
+    transform: translateX(-80px);
+    /* Reveal delete action */
 }
