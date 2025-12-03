@@ -56,14 +56,11 @@ export const handleSignUp = async (e) => {
  * @param {Event} e - The submit event.
  */
 export const handleLogin = async (e) => {
-    console.log('handleLogin called');
     if (e) {
         e.preventDefault();
-        console.log('Default prevented');
     }
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    console.log('Credentials retrieved:', email, '***');
 
     try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({

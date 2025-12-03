@@ -52,7 +52,7 @@ export const loadData = async () => {
         state.goals = goals || [];
     } catch (e) { console.error('Exception fetching goals:', e); }
 
-    console.log('Data loaded:', state);
+    // Data loaded successfully
 
     // Re-render current view to show data
     // We need to trigger a re-render. Since we don't have a reactive framework, 

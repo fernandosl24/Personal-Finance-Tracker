@@ -11,7 +11,6 @@ import { updateAccountBalance } from './accounts.js';
  */
 export const handleTransactionSubmit = async (e) => {
     e.preventDefault();
-    console.log('Global transaction submit triggered');
 
     const submitBtn = document.getElementById('t-submit-btn');
     const originalBtnText = submitBtn.textContent;
@@ -26,8 +25,6 @@ export const handleTransactionSubmit = async (e) => {
     const description = sanitizeInput(document.getElementById('t-desc').value);
     const notes = sanitizeInput(document.getElementById('t-notes').value);
     const accountId = document.getElementById('t-account').value;
-
-    console.log('Submitting:', { id, type, amount, category, date, description, notes, accountId });
 
     // Validation
     const validationError = validateTransaction({ amount, date, category, description });
@@ -538,6 +535,14 @@ export const processCSVImport = async () => {
                 logDiv.innerHTML += 'Using Standard Format (Date, Description, Amount...).<br>';
             }
 
+            // Build Set for O(1) duplicate detection (optimization)
+            const existingTxSet = new Set(
+                state.transactions.map(t => {
+                    const tDesc = (t.description || '').trim().toLowerCase();
+                    return `${t.date}|${t.amount}|${tDesc}`;
+                })
+            );
+
             for (let i = 1; i < lines.length; i++) { // Skip header
                 const line = lines[i].trim();
                 if (!line) continue;
@@ -613,17 +618,10 @@ export const processCSVImport = async () => {
                     }
                 }
 
-                // Duplicate Check
+                // Duplicate Check (optimized with Set for O(1) lookup)
                 const cleanDesc = description.replace(/"/g, '').trim().toLowerCase();
-                const isDuplicate = state.transactions.some(t => {
-                    const tDate = t.date; // already YYYY-MM-DD from Supabase
-                    const tDesc = (t.description || '').trim().toLowerCase();
-                    const tAmount = parseFloat(t.amount);
-
-                    return tDate === date &&
-                        Math.abs(tAmount - amount) < 0.01 &&
-                        tDesc === cleanDesc;
-                });
+                const txKey = `${date}|${amount}|${cleanDesc}`;
+                const isDuplicate = existingTxSet.has(txKey);
 
                 if (isDuplicate) {
                     skippedCount++;
