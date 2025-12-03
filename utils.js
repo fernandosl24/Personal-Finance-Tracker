@@ -58,24 +58,36 @@ export const getCategoryColor = (categoryName) => {
 
 /**
  * Validates transaction data.
- * @param {Object} data - The transaction data.
- * @returns {string|null} - Error message or null if valid.
+ * @param {Object} transaction - The transaction object.
+ * @returns {string|null} Error message or null if valid.
  */
-export const validateTransaction = (data) => {
-    if (!data.amount || isNaN(data.amount) || parseFloat(data.amount) <= 0) {
-        return 'Amount must be a positive number.';
+export const validateTransaction = ({ amount, date, category, description }) => {
+    if (!amount || isNaN(amount) || amount <= 0) {
+        return 'Please enter a valid positive amount.';
     }
-    if (!data.date) {
-        return 'Date is required.';
+    if (!date) {
+        return 'Please select a date.';
     }
-    // Future date check
-    const today = new Date().toISOString().split('T')[0];
-    if (data.date > today) {
-        return 'Date cannot be in the future.';
+    if (!category) {
+        return 'Please select or enter a category.';
     }
-    if (!data.category || data.category === '') {
-        return 'Category is required.';
+
+    // Date Validation (Not > 1 year in future)
+    const inputDate = new Date(date);
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    if (inputDate > oneYearFromNow) {
+        return 'Date cannot be more than 1 year in the future.';
     }
+
+    // Length Validation
+    if (description && description.length > 100) {
+        return 'Description is too long (max 100 characters).';
+    }
+    if (category.length > 50) {
+        return 'Category is too long (max 50 characters).';
+    }
+
     return null;
 };
 

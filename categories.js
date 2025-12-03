@@ -47,7 +47,10 @@ export const handleCategorySubmit = async (e) => {
                     .update({ category: name })
                     .eq('category', oldCategory.name);
 
-                if (cascadeError) console.error('Cascade Update Failed:', cascadeError);
+                if (cascadeError) {
+                    console.error('Cascade Update Failed:', cascadeError);
+                    alert('Warning: Category updated, but failed to update associated transactions. Please refresh and check your data.');
+                }
             }
 
             alert('Category updated!');

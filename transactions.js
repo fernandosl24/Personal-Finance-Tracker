@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { sanitizeInput, validateTransaction, formatCurrency, getCategoryColor } from './utils.js';
 import { loadData } from './dataLoader.js';
 import { analyzeTransactions, showAuditResults } from './ai.js';
+import { updateAccountBalance } from './accounts.js';
 
 /**
  * Handles the submission of the transaction form (Add/Edit).
@@ -29,7 +30,7 @@ export const handleTransactionSubmit = async (e) => {
     console.log('Submitting:', { id, type, amount, category, date, description, notes, accountId });
 
     // Validation
-    const validationError = validateTransaction({ amount, date, category });
+    const validationError = validateTransaction({ amount, date, category, description });
     if (validationError) {
         alert(validationError);
         submitBtn.disabled = false;
@@ -42,6 +43,27 @@ export const handleTransactionSubmit = async (e) => {
 
         if (id) {
             // UPDATE existing transaction
+            // 1. Fetch original transaction to revert its impact
+            const originalTransaction = state.transactions.find(t => t.id == id);
+            if (!originalTransaction) throw new Error('Original transaction not found');
+
+            // 2. Revert Old Impact
+            if (originalTransaction.account_id) {
+                const oldAmount = originalTransaction.amount;
+                const oldType = originalTransaction.type;
+                // Reverse: Income -> Subtract, Expense -> Add
+                const revertChange = oldType === 'income' ? -oldAmount : oldAmount;
+                await updateAccountBalance(originalTransaction.account_id, revertChange);
+            }
+
+            // 3. Apply New Impact
+            if (accountId) {
+                // Apply: Income -> Add, Expense -> Subtract
+                const newChange = type === 'income' ? amount : -amount;
+                await updateAccountBalance(accountId, newChange);
+            }
+
+            // 4. Update Transaction
             const { error: updateError } = await supabaseClient
                 .from('transactions')
                 .update({
@@ -56,6 +78,7 @@ export const handleTransactionSubmit = async (e) => {
                 .eq('id', id);
             error = updateError;
             if (!error) alert('Transaction updated!');
+
         } else {
             // INSERT new transaction
             const { error: insertError } = await supabaseClient
@@ -71,6 +94,12 @@ export const handleTransactionSubmit = async (e) => {
                     account_id: accountId || null
                 }]);
             error = insertError;
+
+            // Apply Impact to Account
+            if (!error && accountId) {
+                const change = type === 'income' ? amount : -amount;
+                await updateAccountBalance(accountId, change);
+            }
         }
 
         if (error) throw error;
@@ -388,10 +417,10 @@ export const renderTransactionList = (transactions) => {
                                 <i class="fa-solid fa-tag"></i>
                             </div>
                             <div class="tx-details">
-                                <span class="tx-desc">${t.description}</span>
+                                <span class="tx-desc">${sanitizeInput(t.description)}</span>
                                 <span class="tx-meta">
-                                    ${new Date(t.date).toLocaleDateString()} • <span style="color: ${getCategoryColor(t.category)}">${t.category}</span>
-                                    ${t.account_id ? `• <span style="color: var(--text-secondary)">${accountName}</span>` : ''}
+                                    ${new Date(t.date).toLocaleDateString()} • <span style="color: ${getCategoryColor(t.category)}">${sanitizeInput(t.category)}</span>
+                                    ${t.account_id ? `• <span style="color: var(--text-secondary)">${sanitizeInput(accountName)}</span>` : ''}
                                 </span>
                             </div>
                         </div>

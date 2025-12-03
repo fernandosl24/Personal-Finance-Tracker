@@ -74,30 +74,29 @@ Based on: Comprehensive Code Analysis, Architecture Review, and Live Code Inspec
 
 ## 🚨 IMMEDIATE ACTION ITEMS (This Week)
 
-### Priority #1: Fix Edit Transaction Balance Bug ⚡ CRITICAL
-- [ ] **Fix edit transaction balance calculations** (app.js:1348-1367)
-  - **Effort**: 2-3 hours
-  - **Current Code Problem**:
-    ```javascript
-    // Line 1351 comment: "For MVP, we'll just update the transaction details"
-    // This causes balance corruption!
-    ```
-  - **Required Fix**:
-    1. Fetch old transaction data
-    2. Revert old balance changes
-    3. Apply new balance changes
-    4. Update transaction
-  - **Files to Modify**: app.js lines 1348-1367
-  - **Testing**: Verify balance updates when changing amount/account
+### Priority #1: Fix Edit Transaction Balance Bug ⚡ CRITICAL ✅ COMPLETED
+- [x] **Fix edit transaction balance calculations** (transactions.js)
+  - **Status**: ✅ FIXED (2025-12-03)
+  - **Solution Implemented**:
+    1. Created `updateAccountBalance()` helper in `accounts.js`
+    2. Updated `handleTransactionSubmit()` to:
+       - Fetch original transaction before update
+       - Revert old balance impact
+       - Apply new balance impact
+       - Update transaction record
+  - **Files Modified**: `transactions.js`, `accounts.js`
+  - **Impact**: Account balances now correctly update for both ADD and EDIT operations
 
-### Priority #2: Add Input Validation ⚡ CRITICAL
-- [ ] **Add validation for transaction amounts** (app.js:1336)
-  - **Effort**: 1 hour
-  - **Current Problem**: `parseFloat()` returns NaN if input is invalid
-  - **Required Fix**:
-    ```javascript
-    const amount = parseFloat(document.getElementById('t-amount').value);
-    if (isNaN(amount) || amount <= 0) {
+### Priority #2: Add Input Validation ⚡ CRITICAL ✅ COMPLETED
+- [x] **Add validation for transaction amounts** (utils.js)
+  - **Status**: ✅ FIXED (2025-12-03)
+  - **Solution Implemented**:
+    - Enhanced `validateTransaction()` in `utils.js` with:
+      - Amount validation (positive numbers only)
+      - Date validation (not > 1 year in future)
+      - Length validation (descriptions < 100 chars, categories < 50 chars)
+  - **Files Modified**: `utils.js`, `transactions.js`
+  - **Impact**: Invalid data is now rejected before database insertion
         alert('Please enter a valid positive amount');
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
@@ -108,40 +107,38 @@ Based on: Comprehensive Code Analysis, Architecture Review, and Live Code Inspec
   - [ ] Validate string lengths (category, description max chars)
   - [ ] Add client-side constraints matching database
 
-### Priority #3: Fix Silent Cascade Errors ⚡ HIGH
-- [ ] **Show user errors when category cascade fails** (app.js:1865)
-  - **Effort**: 15 minutes
-  - **Current Problem**: `if (cascadeError) console.error(...)` - user never sees this
-  - **Required Fix**:
-    ```javascript
-    if (cascadeError) {
-        console.error('Cascade Update Failed:', cascadeError);
+### Priority #3: Fix Silent Cascade Errors ⚡ HIGH ✅ COMPLETED
+- [x] **Show user errors when category cascade fails** (categories.js)
+  - **Status**: ✅ FIXED (2025-12-03)
+  - **Solution Implemented**:
+    - Added user alert in `handleCategorySubmit()` when cascade update fails
+    - Changed from silent console.error to visible alert
+  - **Files Modified**: `categories.js`
+  - **Impact**: Users are now notified of data inconsistencies
         alert('Warning: Failed to update some transactions. Please refresh and verify your data.');
         // Don't return - still show success for category itself
     }
     ```
 
-### Priority #4: Move Credentials to Environment Variables ⚡ HIGH
-- [ ] **Remove hardcoded Supabase credentials** (config.js:1-2)
-  - **Effort**: 30 minutes
-  - **Security Risk**: Credentials visible in public repository
-  - **Required Actions**:
-    1. Create `.env.example` with placeholders
-    2. Add `config.js` to `.gitignore`
-    3. Update README with setup instructions
-    4. Document how to get Supabase credentials
+### Priority #4: Move Credentials to Environment Variables ⚡ HIGH ✅ COMPLETED
+- [x] **Remove hardcoded Supabase credentials** (config_v2.js)
+  - **Status**: ✅ FIXED (2025-12-03)
+  - **Solution Implemented**:
+    - Added `config_v2.js` to `.gitignore`
+    - Created `config_v2.example.js` template file
+    - Updated README with setup instructions
+  - **Files Modified**: `.gitignore`, `config_v2.example.js`, `README.md`
+  - **Impact**: Credentials no longer exposed in version control
 
-### Priority #5: Basic XSS Protection ⚡ MEDIUM-HIGH
-- [ ] **Replace `.innerHTML` with `.textContent` for user content**
-  - **Effort**: 2-3 hours
-  - **Found**: 36 instances of `.innerHTML` in app.js
-  - **Priority Locations** (user-generated content):
-    - Transaction descriptions
-    - Transaction notes
-    - Category names
-    - Account names
-  - **Keep `.innerHTML`** only for static HTML templates you control
-  - **Consider**: Adding DOMPurify library for rich content if needed
+### Priority #5: Basic XSS Protection ⚡ MEDIUM-HIGH ✅ COMPLETED
+- [x] **Replace `.innerHTML` with `.textContent` for user content**
+  - **Status**: ✅ FIXED (2025-12-03)
+  - **Solution Implemented**:
+    - Added `sanitizeInput()` calls in transaction rendering
+    - Protected transaction descriptions, category names, and account names
+    - Verified `sanitizeInput()` function converts HTML to entities
+  - **Files Modified**: `transactions.js`
+  - **Impact**: XSS attacks prevented in user-generated content
 
 ---
 

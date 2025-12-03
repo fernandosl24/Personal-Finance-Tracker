@@ -48,11 +48,16 @@ A modern, AI-powered personal finance tracking application built with vanilla Ja
     - Copy your **Project URL** and **Anon Key**.
 
 3.  **Configuration**:
-    - Open `app.js` and replace the placeholder Supabase credentials with your own:
-      ```javascript
-      const supabaseUrl = 'YOUR_SUPABASE_URL';
-      const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+    - Copy `config_v2.example.js` to `config_v2.js`:
+      ```bash
+      cp config_v2.example.js config_v2.js
       ```
+    - Open `config_v2.js` and replace the placeholders with your Supabase credentials:
+      ```javascript
+      export const SUPABASE_URL = 'https://your-project.supabase.co';
+      export const SUPABASE_ANON_KEY = 'your-anon-key-here';
+      ```
+    - **Important**: `config_v2.js` is gitignored to protect your credentials. Never commit this file.
 
 4.  **Run Locally**:
     - You can use any static file server. For example, with Python:
