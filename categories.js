@@ -284,11 +284,11 @@ const showMergeReviewModal = (merges) => {
     const rows = merges.map((m, i) => `
         <tr>
             <td style="text-align: center;">
-                <input type="checkbox" class="merge-check" checked data-old="${m.old_name}" data-new="${m.new_name}">
+                <input type="checkbox" class="merge-check" checked data-old="${sanitizeInput(m.old_name)}" data-new="${sanitizeInput(m.new_name)}">
             </td>
-            <td>${m.old_name}</td>
+            <td>${sanitizeInput(m.old_name)}</td>
             <td><i class="fa-solid fa-arrow-right" style="color: var(--text-secondary);"></i></td>
-            <td style="font-weight: 500; color: var(--accent-primary);">${m.new_name}</td>
+            <td style="font-weight: 500; color: var(--accent-primary);">${sanitizeInput(m.new_name)}</td>
         </tr>
     `).join('');
 
