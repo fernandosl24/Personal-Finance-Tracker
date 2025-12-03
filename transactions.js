@@ -442,16 +442,38 @@ export const renderTransactionList = (transactions) => {
 };
 
 /**
- * Attaches event listeners to the transaction list buttons.
+ * Attaches event listeners to the transaction list buttons using event delegation.
+ * This prevents memory leaks by using a single listener instead of many.
  * @param {HTMLElement} container - The container element.
  */
 export const attachTransactionListeners = (container) => {
-    container.querySelectorAll('.edit-tx-btn').forEach(btn => {
-        btn.addEventListener('click', () => editTransaction(btn.dataset.id));
-    });
-    container.querySelectorAll('.delete-tx-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteTransaction(btn.dataset.id));
-    });
+    // Remove old listener if it exists (cleanup)
+    if (container._transactionClickHandler) {
+        container.removeEventListener('click', container._transactionClickHandler);
+    }
+
+    // Create new handler using event delegation
+    const clickHandler = (e) => {
+        // Check if click was on edit button or its child (icon)
+        const editBtn = e.target.closest('.edit-tx-btn');
+        if (editBtn) {
+            editTransaction(editBtn.dataset.id);
+            return;
+        }
+
+        // Check if click was on delete button or its child (icon)
+        const deleteBtn = e.target.closest('.delete-tx-btn');
+        if (deleteBtn) {
+            deleteTransaction(deleteBtn.dataset.id);
+            return;
+        }
+    };
+
+    // Store reference for cleanup
+    container._transactionClickHandler = clickHandler;
+
+    // Attach single listener to container
+    container.addEventListener('click', clickHandler);
 };
 
 const attachSwipeListeners = () => {

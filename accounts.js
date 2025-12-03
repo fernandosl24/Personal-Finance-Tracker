@@ -112,9 +112,26 @@ export const renderAccounts = () => {
 
     document.getElementById('add-account-form').addEventListener('submit', handleAccountSubmit);
 
-    document.querySelectorAll('.delete-account-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteAccount(btn.dataset.id));
-    });
+    // Use event delegation for delete buttons to prevent memory leaks
+    const accountsGrid = contentArea.querySelector('[style*="grid"]');
+    if (accountsGrid) {
+        // Remove old listener if it exists
+        if (accountsGrid._accountClickHandler) {
+            accountsGrid.removeEventListener('click', accountsGrid._accountClickHandler);
+        }
+
+        // Create new handler using event delegation
+        const clickHandler = (e) => {
+            const deleteBtn = e.target.closest('.delete-account-btn');
+            if (deleteBtn) {
+                deleteAccount(deleteBtn.dataset.id);
+            }
+        };
+
+        // Store reference and attach listener
+        accountsGrid._accountClickHandler = clickHandler;
+        accountsGrid.addEventListener('click', clickHandler);
+    }
 };
 
 /**
