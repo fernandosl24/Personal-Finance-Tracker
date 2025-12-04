@@ -407,7 +407,7 @@ export const renderTransactionList = (transactions) => {
         const sign = isIncome ? '+' : (t.type === 'expense' ? '-' : '');
 
         return `
-                <li class="transaction-item" data-id="${t.id}">
+                <li class="transaction-item" data-id="${t.id}" style="cursor: pointer;">
                     <div class="tx-content">
                         <div class="tx-left">
                             <div class="tx-category-icon" style="background-color: ${getCategoryColor(t.category)}20; color: ${getCategoryColor(t.category)};">
@@ -425,10 +425,6 @@ export const renderTransactionList = (transactions) => {
                             <span class="tx-amount ${t.type === 'income' ? 'income' : 'expense'}">
                                 ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
                             </span>
-                            <div class="tx-actions">
-                                <button class="btn-icon edit-tx-btn" data-id="${t.id}"><i class="fa-solid fa-pen"></i></button>
-                                <button class="btn-icon delete-tx-btn" data-id="${t.id}"><i class="fa-solid fa-trash"></i></button>
-                            </div>
                         </div>
                     </div>
                     <div class="swipe-action">
@@ -454,17 +450,20 @@ export const attachTransactionListeners = (container) => {
 
     // Create new handler using event delegation
     const clickHandler = (e) => {
-        // Check if click was on edit button or its child (icon)
-        const editBtn = e.target.closest('.edit-tx-btn');
-        if (editBtn) {
-            editTransaction(editBtn.dataset.id);
+        // Check if click was on swipe action (delete)
+        const swipeAction = e.target.closest('.swipe-action');
+        if (swipeAction) {
+            const txItem = swipeAction.closest('.transaction-item');
+            if (txItem) {
+                deleteTransaction(txItem.dataset.id);
+            }
             return;
         }
 
-        // Check if click was on delete button or its child (icon)
-        const deleteBtn = e.target.closest('.delete-tx-btn');
-        if (deleteBtn) {
-            deleteTransaction(deleteBtn.dataset.id);
+        // Check if click was on transaction item (open edit modal)
+        const txItem = e.target.closest('.transaction-item');
+        if (txItem) {
+            editTransaction(txItem.dataset.id);
             return;
         }
     };
