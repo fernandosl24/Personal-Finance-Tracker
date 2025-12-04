@@ -684,18 +684,23 @@ body {
 
 .swipe-action {
     position: absolute;
-    top: 0;
     right: 0;
-    height: 100%;
-    width: 100%;
-    background-color: var(--danger);
-    display: flex;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: var(--danger);
+    display: none;
+    /* Hidden by default, shown on swipe */
     align-items: center;
-    justify-content: flex-end;
-    padding-right: 2rem;
+    justify-content: center;
     color: white;
-    font-size: 1.2rem;
-    z-index: 1;
+    font-size: 1.5rem;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.transaction-item.swiped .swipe-action {
+    display: flex;
+    /* Show when swiped */
 }
 
 .transaction-item.swiped .tx-content {
