@@ -176,6 +176,12 @@ export const editTransaction = (id) => {
 
     document.getElementById('t-submit-btn').textContent = 'Update Transaction';
 
+    // Show delete button when editing
+    const deleteBtn = document.getElementById('t-delete-btn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'block';
+    }
+
     const modal = document.getElementById('transaction-modal');
     console.log('Modal element:', modal);
     if (modal) {

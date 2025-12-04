@@ -158,7 +158,14 @@
                     <select id="t-account"></select>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block" id="t-submit-btn">Add Transaction</button>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary" id="t-submit-btn" style="flex: 1;">Add
+                        Transaction</button>
+                    <button type="button" class="btn" id="t-delete-btn"
+                        style="background: var(--danger); color: white; display: none;">
+                        <i class="fa-solid fa-trash"></i> Delete
+                    </button>
+                </div>
             </form>
         </div>
     </div>

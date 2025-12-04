@@ -96,6 +96,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Reset form for new transaction
             document.getElementById('t-id').value = '';
             document.getElementById('t-submit-btn').textContent = 'Add Transaction';
+            // Hide delete button when adding new transaction
+            const deleteBtn = document.getElementById('t-delete-btn');
+            if (deleteBtn) deleteBtn.style.display = 'none';
             document.getElementById('transaction-modal').style.display = 'flex';
         });
     }
@@ -105,6 +108,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (closeTxModal) {
         closeTxModal.addEventListener('click', () => {
             document.getElementById('transaction-modal').style.display = 'none';
+        });
+    }
+
+    // Attach Delete Transaction Button Listener (in modal)
+    const deleteTxBtn = document.getElementById('t-delete-btn');
+    if (deleteTxBtn) {
+        deleteTxBtn.addEventListener('click', () => {
+            const txId = document.getElementById('t-id').value;
+            if (txId && confirm('Are you sure you want to delete this transaction?')) {
+                // Import deleteTransaction from transactions.js
+                import('./transactions.js').then(module => {
+                    module.deleteTransaction(txId);
+                    document.getElementById('transaction-modal').style.display = 'none';
+                });
+            }
         });
     }
 
