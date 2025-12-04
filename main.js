@@ -93,7 +93,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addTxBtn = document.getElementById('add-transaction-btn');
     if (addTxBtn) {
         addTxBtn.addEventListener('click', () => {
+            // Reset form for new transaction
+            document.getElementById('t-id').value = '';
+            document.getElementById('t-submit-btn').textContent = 'Add Transaction';
             document.getElementById('transaction-modal').style.display = 'flex';
+        });
+    }
+
+    // Attach Close Transaction Modal Listener
+    const closeTxModal = document.getElementById('close-tx-modal');
+    if (closeTxModal) {
+        closeTxModal.addEventListener('click', () => {
+            document.getElementById('transaction-modal').style.display = 'none';
         });
     }
 
