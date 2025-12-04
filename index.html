@@ -171,6 +171,39 @@
     </div>
     </div>
 
+    <!-- Goal Modal -->
+    <div id="goal-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-goal-modal">&times;</span>
+            <h2>Add Goal</h2>
+            <form id="goal-form">
+                <input type="hidden" id="goal-id">
+
+                <div class="form-group">
+                    <label>Goal Name</label>
+                    <input type="text" id="goal-name" required placeholder="e.g., Emergency Fund">
+                </div>
+
+                <div class="form-group">
+                    <label>Target Amount</label>
+                    <input type="number" id="goal-target" step="0.01" required placeholder="0.00" inputmode="decimal">
+                </div>
+
+                <div class="form-group">
+                    <label>Current Amount (Optional)</label>
+                    <input type="number" id="goal-current" step="0.01" placeholder="0.00" inputmode="decimal">
+                </div>
+
+                <div class="form-group">
+                    <label>Deadline (Optional)</label>
+                    <input type="date" id="goal-deadline">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="goal-submit-btn">Add Goal</button>
+            </form>
+        </div>
+    </div>
+
     <!-- App Logic -->
     <!-- App Logic -->
     <script type="module" src="main.js"></script>
