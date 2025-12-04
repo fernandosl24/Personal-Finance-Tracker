@@ -450,9 +450,12 @@ export const attachTransactionListeners = (container) => {
 
     // Create new handler using event delegation
     const clickHandler = (e) => {
-        // Check if click was on swipe action (delete)
+        console.log('Click detected on:', e.target);
+
+        // Check if click was on swipe action (delete) - but swipe-action is hidden by default
         const swipeAction = e.target.closest('.swipe-action');
         if (swipeAction) {
+            console.log('Swipe action clicked');
             const txItem = swipeAction.closest('.transaction-item');
             if (txItem) {
                 deleteTransaction(txItem.dataset.id);
@@ -463,9 +466,12 @@ export const attachTransactionListeners = (container) => {
         // Check if click was on transaction item (open edit modal)
         const txItem = e.target.closest('.transaction-item');
         if (txItem) {
+            console.log('Transaction item clicked, ID:', txItem.dataset.id);
             editTransaction(txItem.dataset.id);
             return;
         }
+
+        console.log('Click not on transaction item');
     };
 
     // Store reference for cleanup
@@ -473,6 +479,7 @@ export const attachTransactionListeners = (container) => {
 
     // Attach single listener to container
     container.addEventListener('click', clickHandler);
+    console.log('Transaction listeners attached to container');
 };
 
 const attachSwipeListeners = () => {

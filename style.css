@@ -696,11 +696,15 @@ body {
     color: white;
     font-size: 1.5rem;
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    pointer-events: none;
+    /* Don't block clicks when hidden */
 }
 
 .transaction-item.swiped .swipe-action {
     display: flex;
     /* Show when swiped */
+    pointer-events: auto;
+    /* Enable clicks when visible */
 }
 
 .transaction-item.swiped .tx-content {
