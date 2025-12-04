@@ -140,10 +140,12 @@ export const deleteTransaction = async (id) => {
  * @param {string} id - The transaction ID.
  */
 export const editTransaction = (id) => {
-    console.log('editTransaction called with ID:', id);
-    const t = state.transactions.find(tr => tr.id === id);
+    console.log('editTransaction called with ID:', id, 'Type:', typeof id);
+    // Convert ID to match the type in state.transactions (could be string or number)
+    const t = state.transactions.find(tr => tr.id == id); // Use == for loose equality
     if (!t) {
         console.error('Transaction not found:', id);
+        console.log('Available transaction IDs:', state.transactions.map(t => t.id));
         return;
     }
 
