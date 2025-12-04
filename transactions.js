@@ -6,6 +6,24 @@ import { analyzeTransactions, showAuditResults } from './ai.js';
 import { updateAccountBalance } from './accounts.js';
 
 /**
+ * Debounces a function call
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Milliseconds to wait
+ * @returns {Function} Debounced function
+ */
+const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
+/**
  * Handles the submission of the transaction form (Add/Edit).
  * @param {Event} e - The submit event.
  */
@@ -270,10 +288,17 @@ export const renderTransactions = () => {
     attachTransactionListeners(container);
     attachSwipeListeners();
 
-    // Attach Filter Listeners
+    // Attach Filter Listeners with debouncing for search
+    const debouncedFilter = debounce(filterTransactions, 300);
     const filterInputs = ['filter-search', 'filter-type', 'filter-category', 'filter-account', 'filter-date-from', 'filter-date-to'];
     filterInputs.forEach(id => {
-        document.getElementById(id).addEventListener('input', filterTransactions);
+        const element = document.getElementById(id);
+        // Use debouncing for search input, immediate for dropdowns/dates
+        if (id === 'filter-search') {
+            element.addEventListener('input', debouncedFilter);
+        } else {
+            element.addEventListener('input', filterTransactions);
+        }
     });
 
     // Attach Button Listeners

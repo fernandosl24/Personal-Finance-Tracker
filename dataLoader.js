@@ -51,12 +51,4 @@ export const loadData = async () => {
         if (goalsError) console.error('Error fetching goals:', goalsError);
         state.goals = goals || [];
     } catch (e) { console.error('Exception fetching goals:', e); }
-
-    // Data loaded successfully
-
-    // Re-render current view to show data
-    // We need to trigger a re-render. Since we don't have a reactive framework, 
-    // we can dispatch a custom event or call navigateTo if available globally.
-    // For now, let's dispatch an event.
-    window.dispatchEvent(new CustomEvent('dataLoaded'));
 };
