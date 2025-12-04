@@ -151,6 +151,20 @@ export const editTransaction = (id) => {
 
     console.log('Transaction found:', t);
 
+    // Populate category dropdown
+    const categorySelect = document.getElementById('t-category');
+    categorySelect.innerHTML = state.categories.map(c =>
+        `<option value="${c.name}">${c.name}</option>`
+    ).join('');
+
+    // Populate account dropdown
+    const accountSelect = document.getElementById('t-account');
+    accountSelect.innerHTML = '<option value="">No Account</option>' +
+        state.accounts.map(a =>
+            `<option value="${a.id}">${a.name}</option>`
+        ).join('');
+
+    // Set form values
     document.getElementById('t-id').value = t.id;
     document.getElementById('t-type').value = t.type;
     document.getElementById('t-amount').value = t.amount;
