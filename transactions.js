@@ -140,8 +140,14 @@ export const deleteTransaction = async (id) => {
  * @param {string} id - The transaction ID.
  */
 export const editTransaction = (id) => {
+    console.log('editTransaction called with ID:', id);
     const t = state.transactions.find(tr => tr.id === id);
-    if (!t) return;
+    if (!t) {
+        console.error('Transaction not found:', id);
+        return;
+    }
+
+    console.log('Transaction found:', t);
 
     document.getElementById('t-id').value = t.id;
     document.getElementById('t-type').value = t.type;
@@ -153,7 +159,15 @@ export const editTransaction = (id) => {
     document.getElementById('t-account').value = t.account_id || '';
 
     document.getElementById('t-submit-btn').textContent = 'Update Transaction';
-    document.getElementById('transaction-modal').style.display = 'flex';
+
+    const modal = document.getElementById('transaction-modal');
+    console.log('Modal element:', modal);
+    if (modal) {
+        modal.style.display = 'flex';
+        console.log('Modal display set to flex');
+    } else {
+        console.error('Modal element not found!');
+    }
 };
 
 /**
