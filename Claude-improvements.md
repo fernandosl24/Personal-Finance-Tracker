@@ -344,30 +344,6 @@ When all quick wins are complete:
 
 ## 🚀 NEXT PHASE - Testing & Features (Optional)
 
-### Phase 3: Testing Infrastructure (10 hours)
-
-#### Week 1: Setup & Unit Tests
-- [ ] Install Jest or Vitest
-- [ ] Configure test environment
-- [ ] Write tests for:
-  - [ ] validateTransaction()
-  - [ ] sanitizeInput()
-  - [ ] updateAccountBalance()
-  - [ ] CSV duplicate detection
-  - [ ] analyzeTransactions() AI logic
-  - [ ] Category cascade updates
-
-#### Week 2: Integration & E2E Tests
-- [ ] Test auth flow
-- [ ] Test transaction CRUD + balance updates
-- [ ] Test CSV import end-to-end
-- [ ] Set up CI/CD pipeline
-- [ ] Add code coverage reports
-
-**Target**: 40-60% test coverage
-
----
-
 ### Phase 4: Advanced Features (20 hours)
 
 #### Pagination (4 hours)
@@ -393,12 +369,6 @@ When all quick wins are complete:
 - [ ] Add contributions functionality
 - [ ] Show progress visualizations
 - [ ] Add milestone alerts
-
-#### Offline Support (3 hours)
-- [ ] Implement offline queue for transactions
-- [ ] Sync when connection restored
-- [ ] Show offline indicator
-- [ ] Cache data for offline viewing
 
 #### Mobile Enhancements (2 hours)
 - [ ] Improve touch interactions

@@ -140,19 +140,6 @@ export const deleteTransaction = async (id) => {
  * @param {string} id - The transaction ID.
  */
 export const editTransaction = (id) => {
-    console.log('editTransaction called with ID:', id, 'Type:', typeof id);
-    // Convert ID to match the type in state.transactions (could be string or number)
-    const t = state.transactions.find(tr => tr.id == id); // Use == for loose equality
-    if (!t) {
-        console.error('Transaction not found:', id);
-        console.log('Available transaction IDs:', state.transactions.map(t => t.id));
-        return;
-    }
-
-    console.log('Transaction found:', t);
-
-    // Populate category dropdown
-    const categorySelect = document.getElementById('t-category');
     categorySelect.innerHTML = state.categories.map(c =>
         `<option value="${c.name}">${c.name}</option>`
     ).join('');
@@ -183,12 +170,8 @@ export const editTransaction = (id) => {
     }
 
     const modal = document.getElementById('transaction-modal');
-    console.log('Modal element:', modal);
     if (modal) {
         modal.style.display = 'flex';
-        console.log('Modal display set to flex');
-    } else {
-        console.error('Modal element not found!');
     }
 };
 
@@ -486,12 +469,9 @@ export const attachTransactionListeners = (container) => {
 
     // Create new handler using event delegation
     const clickHandler = (e) => {
-        console.log('Click detected on:', e.target);
-
-        // Check if click was on swipe action (delete) - but swipe-action is hidden by default
+        // Check if click was on swipe action (delete)
         const swipeAction = e.target.closest('.swipe-action');
         if (swipeAction) {
-            console.log('Swipe action clicked');
             const txItem = swipeAction.closest('.transaction-item');
             if (txItem) {
                 deleteTransaction(txItem.dataset.id);
@@ -502,12 +482,9 @@ export const attachTransactionListeners = (container) => {
         // Check if click was on transaction item (open edit modal)
         const txItem = e.target.closest('.transaction-item');
         if (txItem) {
-            console.log('Transaction item clicked, ID:', txItem.dataset.id);
             editTransaction(txItem.dataset.id);
             return;
         }
-
-        console.log('Click not on transaction item');
     };
 
     // Store reference for cleanup
@@ -515,7 +492,6 @@ export const attachTransactionListeners = (container) => {
 
     // Attach single listener to container
     container.addEventListener('click', clickHandler);
-    console.log('Transaction listeners attached to container');
 };
 
 const attachSwipeListeners = () => {
@@ -603,7 +579,8 @@ export const processCSVImport = async () => {
             const existingTxSet = new Set(
                 state.transactions.map(t => {
                     const tDesc = (t.description || '').trim().toLowerCase();
-                    return `${t.date}|${t.amount}|${tDesc}`;
+                    const normalizedAmount = (Math.round(t.amount * 100) / 100).toFixed(2);
+                    return `${t.date}|${normalizedAmount}|${tDesc}`;
                 })
             );
 
@@ -684,7 +661,8 @@ export const processCSVImport = async () => {
 
                 // Duplicate Check (optimized with Set for O(1) lookup)
                 const cleanDesc = description.replace(/"/g, '').trim().toLowerCase();
-                const txKey = `${date}|${amount}|${cleanDesc}`;
+                const normalizedAmount = (Math.round(amount * 100) / 100).toFixed(2);
+                const txKey = `${date}|${normalizedAmount}|${cleanDesc}`;
                 const isDuplicate = existingTxSet.has(txKey);
 
                 if (isDuplicate) {
