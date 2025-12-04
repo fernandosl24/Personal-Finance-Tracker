@@ -31,7 +31,7 @@ export const handleCategorySubmit = async (e) => {
     try {
         if (id) {
             // UPDATE existing category
-            const oldCategory = state.categories.find(c => c.id == id);
+            const oldCategory = state.categories.find(c => c.id === id);
 
             const { error } = await supabaseClient
                 .from('categories')
@@ -41,7 +41,7 @@ export const handleCategorySubmit = async (e) => {
             if (error) throw error;
 
             // Cascading Update: If name changed, update transactions
-            if (oldCategory && oldCategory.name !== name) {
+            if (oldCategory && oldCategory.name && oldCategory.name !== name) {
                 const { error: cascadeError } = await supabaseClient
                     .from('transactions')
                     .update({ category: name })
@@ -92,7 +92,7 @@ export const deleteCategory = async (id) => {
 
     try {
         // 1. Get Category Name
-        const category = state.categories.find(c => c.id == id);
+        const category = state.categories.find(c => c.id === id);
         if (!category) return;
 
         // 2. Update Transactions to 'Uncategorized'

@@ -59,7 +59,7 @@ export const handleTransactionSubmit = async (e) => {
         if (id) {
             // UPDATE existing transaction
             // 1. Fetch original transaction to revert its impact
-            const originalTransaction = state.transactions.find(t => t.id == id);
+            const originalTransaction = state.transactions.find(t => t.id === id);
             if (!originalTransaction) throw new Error('Original transaction not found');
 
             // 2. Revert Old Impact
@@ -445,7 +445,7 @@ export const renderTransactionList = (transactions) => {
     return `
         <ul class="transaction-list">
             ${transactions.map(t => {
-        const accountName = state.accounts.find(a => a.id == t.account_id)?.name || '-';
+        const accountName = state.accounts.find(a => a.id === t.account_id)?.name || '-';
         const isIncome = t.type === 'income';
         const color = isIncome ? 'var(--success)' : (t.type === 'transfer' ? 'var(--text-secondary)' : 'var(--text-primary)');
         const sign = isIncome ? '+' : (t.type === 'expense' ? '-' : '');
