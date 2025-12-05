@@ -55,13 +55,3 @@ body.theme-light {
         background-color: rgba(0, 0, 0, 0.02);
     }
 }
-
-/* Ocean Theme Overrides */
-body.theme-ocean {
-    /* Ocean theme works well with default styles */
-}
-
-/* Sunset Theme Overrides */
-body.theme-sunset {
-    /* Sunset theme works well with default styles */
-}
