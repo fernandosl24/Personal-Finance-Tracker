@@ -7,6 +7,7 @@ import { renderTransactions, renderTransactionList, filterTransactions, handleTr
 import { renderAccounts, handleAccountSubmit, deleteAccount } from './accounts.js';
 import { handleCategorySubmit, deleteCategory, editCategory, syncCategories, optimizeCategories } from './categories.js';
 import { renderGoals } from './goals.js';
+import { renderBudgets } from './budgets.js';
 import { startAIAudit, processSmartImport, showAuditResults, applyAuditChanges } from './ai.js';
 import { formatCurrency } from './utils.js';
 
@@ -194,6 +195,7 @@ const navigateTo = (viewId) => {
     if (viewId === 'settings') renderSettings();
     if (viewId === 'accounts') renderAccounts();
     if (viewId === 'goals') renderGoals();
+    if (viewId === 'budgets') renderBudgets();
     // if (viewId === 'categories') renderCategories(); // Categories managed in settings
 };
 

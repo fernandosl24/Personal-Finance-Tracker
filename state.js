@@ -4,5 +4,6 @@ export const state = {
     transactions: [],
     categories: [],
     accounts: [],
-    goals: []
+    goals: [],
+    budgets: []
 };

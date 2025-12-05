@@ -51,4 +51,15 @@ export const loadData = async () => {
         if (goalsError) console.error('Error fetching goals:', goalsError);
         state.goals = goals || [];
     } catch (e) { console.error('Exception fetching goals:', e); }
+
+    // 5. Fetch Budgets
+    try {
+        const { data: budgets, error: budgetsError } = await supabaseClient
+            .from('budgets')
+            .select('*')
+            .eq('user_id', state.user.id);
+
+        if (budgetsError) console.error('Error fetching budgets:', budgetsError);
+        state.budgets = budgets || [];
+    } catch (e) { console.error('Exception fetching budgets:', e); }
 };
