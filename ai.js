@@ -206,13 +206,13 @@ export const showAuditResults = (updates) => {
     const modalId = 'audit-results-modal';
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
             <span class="close-modal" id="close-audit-modal">&times;</span>
             <h2>Audit Results</h2>
             <p>Found ${updates.length} suggested improvements. You can modify the suggested categories before applying.</p>
-            <div style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">
+            <div style="max-height: 60vh; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px;">
                 <table class="transaction-table">
-                    <thead>
+                    <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 10;">
                         <tr>
                             <th>Transaction</th>
                             <th>Field</th>
