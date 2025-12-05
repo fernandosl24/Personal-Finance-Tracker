@@ -2,7 +2,8 @@ import { supabaseClient } from './supabaseClient.js';
 import { state } from './state.js';
 import { sanitizeInput, validateTransaction, formatCurrency, getCategoryColor } from './utils.js';
 import { loadData } from './dataLoader.js';
-import { analyzeTransactions, showAuditResults } from './ai.js';
+import { analyzeTransactions } from './ai.js';
+import { saveAuditResults, navigateToAuditResults } from './audit-results.js';
 import { updateAccountBalance } from './accounts.js';
 import { checkBudgetWarnings, checkUnusualSpending } from './notifications.js';
 
@@ -885,9 +886,10 @@ export const processCSVImport = async () => {
                         });
 
                         if (updates.length > 0) {
-                            setTimeout(() => {
+                            setTimeout(async () => {
                                 document.getElementById('csv-import-modal').style.display = 'none';
-                                showAuditResults(updates);
+                                await saveAuditResults(updates);
+                                navigateToAuditResults();
                             }, 1000);
                             return; // Skip the standard alert
                         } else {
