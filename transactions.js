@@ -293,14 +293,14 @@ export const renderTransactions = () => {
                     <div style="position: relative;">
                         <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
                         <input type="text" id="filter-search" placeholder="Search descriptions..." 
-                            style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 2rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                            style="width: 100%; padding: 0.5rem 0.5rem 0.5rem 2rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
                     </div>
                 </div>
 
                 <!-- Type -->
                 <div>
                     <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Type</label>
-                    <select id="filter-type" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    <select id="filter-type" style="width: 100%; padding: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
                         <option value="all">All Types</option>
                         <option value="income">Income</option>
                         <option value="expense">Expense</option>
@@ -311,7 +311,7 @@ export const renderTransactions = () => {
                 <!-- Category -->
                 <div>
                     <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Category</label>
-                    <select id="filter-category" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    <select id="filter-category" style="width: 100%; padding: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
                         <option value="all">All Categories</option>
                         ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
                     </select>
@@ -320,7 +320,7 @@ export const renderTransactions = () => {
                 <!-- Account -->
                 <div>
                     <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">Account</label>
-                    <select id="filter-account" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    <select id="filter-account" style="width: 100%; padding: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
                         <option value="all">All Accounts</option>
                         ${state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
                     </select>
@@ -329,11 +329,11 @@ export const renderTransactions = () => {
                 <!-- Date Range -->
                 <div>
                     <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">From</label>
-                    <input type="date" id="filter-date-from" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    <input type="date" id="filter-date-from" style="width: 100%; padding: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
                 </div>
                 <div>
                     <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.3rem;">To</label>
-                    <input type="date" id="filter-date-to" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                    <input type="date" id="filter-date-to" style="width: 100%; padding: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
                 </div>
             </div>
 
