@@ -10,9 +10,12 @@ import { renderGoals } from './goals.js';
 import { renderBudgets } from './budgets.js';
 import { startAIAudit, processSmartImport, showAuditResults, applyAuditChanges } from './ai.js';
 import { formatCurrency } from './utils.js';
+import { initTheme, renderThemeSelector, attachThemeListener } from './theme.js';
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize theme first
+    initTheme();
     // Register Service Worker
     if ('serviceWorker' in navigator) {
         try {
@@ -311,6 +314,35 @@ const renderSettings = () => {
                 <input type="password" id="openai-key" placeholder="sk-..." value="${localStorage.getItem('openai_api_key') || ''}">
                 <small style="color: var(--text-secondary);">Required for AI features (Smart Import, Audit).</small>
             </div>
+            
+            <hr style="margin: 2rem 0; border-color: var(--border-color);">
+            
+            <h3>Appearance</h3>
+            ${renderThemeSelector()}
+            
+            <hr style="margin: 2rem 0; border-color: var(--border-color);">
+            
+            <h3>Data Management</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Export your data for backup or import from a previous backup.
+            </p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                <button class="btn btn-secondary btn-sm" id="export-json-btn">
+                    <i class="fa-solid fa-download"></i> Export Backup (JSON)
+                </button>
+                <button class="btn btn-secondary btn-sm" id="import-json-btn">
+                    <i class="fa-solid fa-upload"></i> Import Backup (JSON)
+                </button>
+                <button class="btn btn-secondary btn-sm" id="export-csv-btn">
+                    <i class="fa-solid fa-file-csv"></i> Export CSV
+                </button>
+            </div>
+            <small style="color: var(--text-secondary);">
+                JSON backup includes all data (transactions, categories, accounts, goals, budgets).
+            </small>
+            
+            <hr style="margin: 2rem 0; border-color: var(--border-color);">
+            
             <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
 
             <hr style="margin: 2rem 0; border-color: var(--border-color);">
@@ -341,6 +373,14 @@ const renderSettings = () => {
         }
     });
 
+    // Attach theme listener
+    attachThemeListener();
+
+    // Attach export/import listeners
+    document.getElementById('export-json-btn').addEventListener('click', exportToJSON);
+    document.getElementById('import-json-btn').addEventListener('click', importFromJSON);
+    document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+
     document.getElementById('start-audit-btn').addEventListener('click', startAIAudit);
 };
 
@@ -358,12 +398,170 @@ const exportToCSV = () => {
         ])
     ];
 
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "transactions.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
 };
+
+/**
+ * Exports all data to JSON for backup
+ */
+const exportToJSON = () => {
+    const exportData = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        user: {
+            id: state.user?.id,
+            email: state.user?.email
+        },
+        data: {
+            transactions: state.transactions,
+            categories: state.categories,
+            accounts: state.accounts,
+            goals: state.goals,
+            budgets: state.budgets
+        }
+    };
+
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financeflow_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    alert('Data exported successfully! Save this file for backup.');
+};
+
+/**
+ * Imports data from JSON backup
+ */
+const importFromJSON = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const importData = JSON.parse(text);
+
+            // Validate import data
+            if (!importData.version || !importData.data) {
+                alert('Invalid backup file format.');
+                return;
+            }
+
+            if (!confirm('This will import data from the backup. Existing data will be merged. Continue?')) {
+                return;
+            }
+
+            // Import each data type
+            const { transactions, categories, accounts, goals, budgets } = importData.data;
+
+            // Import categories first (dependencies)
+            if (categories && categories.length > 0) {
+                for (const cat of categories) {
+                    const exists = state.categories.find(c => c.name === cat.name && c.type === cat.type);
+                    if (!exists) {
+                        await supabaseClient.from('categories').insert([{
+                            user_id: state.user.id,
+                            name: cat.name,
+                            type: cat.type,
+                            color_code: cat.color_code
+                        }]);
+                    }
+                }
+            }
+
+            // Import accounts
+            if (accounts && accounts.length > 0) {
+                for (const acc of accounts) {
+                    const exists = state.accounts.find(a => a.name === acc.name);
+                    if (!exists) {
+                        await supabaseClient.from('accounts').insert([{
+                            user_id: state.user.id,
+                            name: acc.name,
+                            balance: acc.balance
+                        }]);
+                    }
+                }
+            }
+
+            // Import goals
+            if (goals && goals.length > 0) {
+                for (const goal of goals) {
+                    const exists = state.goals.find(g => g.name === goal.name);
+                    if (!exists) {
+                        await supabaseClient.from('goals').insert([{
+                            user_id: state.user.id,
+                            name: goal.name,
+                            target_amount: goal.target_amount,
+                            current_amount: goal.current_amount,
+                            deadline: goal.deadline
+                        }]);
+                    }
+                }
+            }
+
+            // Import budgets
+            if (budgets && budgets.length > 0) {
+                for (const budget of budgets) {
+                    const exists = state.budgets.find(b => b.category === budget.category);
+                    if (!exists) {
+                        await supabaseClient.from('budgets').insert([{
+                            user_id: state.user.id,
+                            category: budget.category,
+                            amount: budget.amount,
+                            period: budget.period || 'monthly'
+                        }]);
+                    }
+                }
+            }
+
+            // Import transactions last
+            if (transactions && transactions.length > 0) {
+                for (const tx of transactions) {
+                    const exists = state.transactions.find(t =>
+                        t.date === tx.date &&
+                        t.amount === tx.amount &&
+                        t.description === tx.description
+                    );
+                    if (!exists) {
+                        await supabaseClient.from('transactions').insert([{
+                            user_id: state.user.id,
+                            date: tx.date,
+                            description: tx.description,
+                            amount: tx.amount,
+                            type: tx.type,
+                            category: tx.category,
+                            account_id: tx.account_id,
+                            notes: tx.notes
+                        }]);
+                    }
+                }
+            }
+
+            // Reload all data
+            await loadData();
+            alert('Data imported successfully!');
+            window.location.reload();
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('Failed to import data. Please check the file format.');
+        }
+    };
+
+    input.click();
+};
+
+
