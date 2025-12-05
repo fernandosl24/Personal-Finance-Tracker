@@ -410,9 +410,12 @@ const renderSettings = () => {
                 <button class="btn btn-secondary btn-sm" id="export-csv-btn">
                     <i class="fa-solid fa-file-csv"></i> Export CSV
                 </button>
+                <button class="btn btn-secondary btn-sm" id="export-pdf-btn">
+                    <i class="fa-solid fa-file-pdf"></i> Export PDF Report
+                </button>
             </div>
             <small style="color: var(--text-secondary);">
-                JSON backup includes all data (transactions, categories, accounts, goals, budgets).
+                JSON backup includes all data. PDF generates a formatted financial report.
             </small>
             
             <hr style="margin: 2rem 0; border-color: var(--border-color);">
@@ -454,6 +457,7 @@ const renderSettings = () => {
     document.getElementById('export-json-btn').addEventListener('click', exportToJSON);
     document.getElementById('import-json-btn').addEventListener('click', importFromJSON);
     document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
+    document.getElementById('export-pdf-btn').addEventListener('click', exportToPDF);
 
     document.getElementById('start-audit-btn').addEventListener('click', startAIAudit);
 };
@@ -636,6 +640,108 @@ const importFromJSON = () => {
     };
 
     input.click();
+};
+
+/**
+ * Exports transactions to PDF report
+ */
+const exportToPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Calculate summary statistics
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const thisMonthTransactions = state.transactions.filter(t =>
+        new Date(t.date) >= startOfMonth
+    );
+
+    const income = thisMonthTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const expenses = thisMonthTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const netSavings = income - expenses;
+
+    // Calculate top categories
+    const categorySpending = {};
+    thisMonthTransactions
+        .filter(t => t.type === 'expense')
+        .forEach(t => {
+            categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
+        });
+
+    const topCategories = Object.entries(categorySpending)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    // Header
+    doc.setFontSize(20);
+    doc.text('FinanceFlow - Financial Report', 105, 20, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 105, 28, { align: 'center' });
+
+    // Summary Section
+    doc.setFontSize(14);
+    doc.text('Monthly Summary', 20, 45);
+
+    doc.setFontSize(10);
+    let y = 55;
+    doc.text(`Total Income: ${formatCurrency(income)}`, 20, y);
+    y += 7;
+    doc.text(`Total Expenses: ${formatCurrency(expenses)}`, 20, y);
+    y += 7;
+    doc.text(`Net Savings: ${formatCurrency(netSavings)}`, 20, y);
+    y += 15;
+
+    // Top Categories
+    doc.setFontSize(14);
+    doc.text('Top Spending Categories', 20, y);
+    y += 10;
+
+    doc.setFontSize(10);
+    topCategories.forEach(([category, amount], index) => {
+        doc.text(`${index + 1}. ${category}: ${formatCurrency(amount)}`, 25, y);
+        y += 7;
+    });
+
+    y += 10;
+
+    // Recent Transactions
+    doc.setFontSize(14);
+    doc.text('Recent Transactions (Last 20)', 20, y);
+    y += 10;
+
+    doc.setFontSize(9);
+    const recentTransactions = state.transactions.slice(0, 20);
+
+    recentTransactions.forEach((t, index) => {
+        if (y > 270) {
+            doc.addPage();
+            y = 20;
+        }
+
+        const accountName = state.accounts.find(a => a.id === t.account_id)?.name || '-';
+        const line = `${t.date} | ${t.description.substring(0, 30)} | ${t.category} | ${t.type} | ${formatCurrency(t.amount)}`;
+        doc.text(line, 20, y);
+        y += 6;
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+    }
+
+    // Save
+    doc.save(`financeflow_report_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
 
