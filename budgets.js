@@ -58,7 +58,7 @@ const handleBudgetSubmit = async (e) => {
     const budgetData = {
         user_id: state.user.id,
         category,
-        amount,
+        amount_limit: amount,  // Use amount_limit to match database schema
         period: 'monthly'
     };
 
@@ -116,8 +116,8 @@ const editBudget = (id) => {
 
     document.getElementById('budget-id').value = budget.id;
     document.getElementById('budget-category').value = budget.category;
-    document.getElementById('budget-amount').value = budget.amount;
-
+    document.getElementById('budget-amount').value = budget.amount_limit || budget.amount || 0;
+    document.getElementById('budget-period').value = budget.period || 'monthly';
     document.getElementById('budget-submit-btn').textContent = 'Update Budget';
     document.getElementById('budget-modal').style.display = 'flex';
 };
@@ -131,14 +131,15 @@ export const renderBudgets = () => {
     // Calculate budget status for each category
     const budgetData = state.budgets.map(b => {
         const spent = getCategorySpending(b.category);
-        const percentage = b.amount > 0 ? (spent / b.amount) * 100 : 0;
-        const remaining = b.amount - spent;
+        const amount = b.amount_limit || b.amount || 0;  // Support both column names
+        const percentage = amount > 0 ? (spent / amount) * 100 : 0;
+        const remaining = amount - spent;
 
         let status = 'good';
         if (percentage >= 100) status = 'exceeded';
         else if (percentage >= 80) status = 'warning';
 
-        return { ...b, spent, percentage, remaining, status };
+        return { ...b, amount, spent, percentage, remaining, status };
     });
 
     const budgetsHTML = budgetData.length > 0
