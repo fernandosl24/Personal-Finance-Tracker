@@ -1,1909 +1,813 @@
-# FinanceFlow - Phase 4 Enhancement Roadmap
+# FinanceFlow - Code Quality & Maintenance Roadmap
 
-**Status**: Production Ready ✅ | Phase 4 Features Planned
-**Current Grade**: **A++**
-**Last Updated**: 2025-12-04
-
----
-
-## 🎉 CURRENT STATUS - PRODUCTION READY A++
-
-### ✅ All Phase 3 Work Complete
-
-| Category | Status | Grade |
-|----------|--------|-------|
-| **Critical Bugs** | 0 remaining | ✅ A++ |
-| **Core Features** | 100% complete | ✅ A++ |
-| **Code Quality** | Excellent | ✅ A++ |
-| **Performance** | Optimized (O(n)) | ✅ A++ |
-| **Security** | Production-ready | ✅ A |
-| **Mobile/PWA** | Full support | ✅ A++ |
-
-**Phase 3 Completed:**
-- ✅ Goals Feature (3 hours) - Complete CRUD, progress tracking
-- ✅ Filter Debouncing (30 min) - 300ms delay on search
-- ✅ Null Checks (15 min) - All safe with optional chaining
-- ✅ Dead Code Cleanup (10 min) - Removed unused code
-
-**Total Lines of Code**: 2,761 (21% reduction from original 3,515)
-**Files**: 17 modular files
-**Memory Leaks**: Zero
-**Test Coverage**: 0% (planned for later)
+**Status**: S-Tier Features Complete ✅ | Bug Fixes Needed ⚠️
+**Current Grade**: **A** (24 bugs found in code review)
+**Last Updated**: 2025-12-05
 
 ---
 
-## 🚀 PHASE 4 ENHANCEMENTS (13-19 hours total)
+## 🎉 CURRENT STATUS - PHASE 4 COMPLETE!
 
-Five major features to take the app from A++ to S-tier:
+### ✅ All Phase 4 Features Implemented (100%)
+
+| Feature | Status | LOC | Grade |
+|---------|--------|-----|-------|
+| **Budget Tracking** | ✅ Complete | 239 lines | A+ |
+| **Analytics Dashboard** | ✅ Complete | 219 lines | A+ |
+| **Export & Reports** | ✅ Complete | Integrated | A+ |
+| **Smart Notifications** | ✅ Complete | 206 lines | A+ |
+| **Theme Customization** | ✅ Complete | 129 lines | A+ |
+
+**Phase 4 Summary:**
+- ✅ Budget Tracking with real-time alerts
+- ✅ Analytics with 4 Chart.js visualizations
+- ✅ Export: CSV, JSON, PDF reports
+- ✅ Smart notifications (budget/goal/spending)
+- ✅ 4 professional themes (Dark, Light, Ocean, Sunset)
+
+**Application Metrics:**
+- **Files**: 19 modular JavaScript files
+- **Total Lines of Code**: 4,003
+- **Features**: 100% complete
+- **Database**: All tables created (including budgets)
 
 ---
 
-# 1. 💰 Budget Tracking Feature (4-6 hours)
+## ⚠️ CODE QUALITY REVIEW - 24 ISSUES FOUND
 
-**Status**: ⏳ Not started
-**Priority**: High - Completes core financial management features
+**Comprehensive code analysis completed on 2025-12-05**
 
-## Overview
+### Issue Breakdown:
+- 🔴 **Critical**: 4 issues (will crash app)
+- 🟠 **High**: 8 issues (breaks functionality/memory leaks)
+- 🟡 **Medium**: 6 issues (UX/performance issues)
+- 🟢 **Low**: 6 issues (edge cases)
 
-Allow users to set monthly budgets per category and track spending against limits.
+**Estimated Fix Time**: 5-8 hours total
 
 ---
 
-## Database Schema Changes (30 minutes)
+# 🔴 CRITICAL ISSUES (Must Fix Immediately)
 
-### Create `budgets` table in Supabase:
+## Issue #1: Edit Transaction - Undefined Variables
+**File**: `transactions.js` lines 168-201
+**Severity**: 🔴 Critical
+**Impact**: App crashes when clicking any transaction to edit
+**Time to Fix**: 15 minutes
 
-```sql
-CREATE TABLE budgets (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    category TEXT NOT NULL,
-    amount DECIMAL(12, 2) NOT NULL,
-    period TEXT DEFAULT 'monthly', -- 'monthly', 'weekly', 'yearly'
-    start_date DATE,
-    created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(user_id, category, period)
-);
+**Problem**:
+```javascript
+export const editTransaction = (id) => {
+    categorySelect.innerHTML = ...  // ❌ categorySelect not defined
+    // Variable 't' (transaction) never declared
+}
+```
 
--- Row Level Security
-ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
+**Error Message**:
+```
+ReferenceError: categorySelect is not defined
+```
 
-CREATE POLICY "Users can view own budgets"
-    ON budgets FOR SELECT
-    USING (auth.uid() = user_id);
+**Fix**:
+```javascript
+export const editTransaction = (id) => {
+    // 1. Find the transaction in state
+    const t = state.transactions.find(tx => tx.id === id);
+    if (!t) {
+        console.error('Transaction not found:', id);
+        return;
+    }
 
-CREATE POLICY "Users can insert own budgets"
-    ON budgets FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    // 2. Get the category select element
+    const categorySelect = document.getElementById('t-category');
+    if (!categorySelect) {
+        console.error('Category select element not found');
+        return;
+    }
 
-CREATE POLICY "Users can update own budgets"
-    ON budgets FOR UPDATE
-    USING (auth.uid() = user_id);
+    // 3. Populate category options
+    categorySelect.innerHTML = state.categories.map(c =>
+        `<option value="${c.name}">${c.name}</option>`
+    ).join('');
 
-CREATE POLICY "Users can delete own budgets"
-    ON budgets FOR DELETE
-    USING (auth.uid() = user_id);
+    // 4. Populate form fields
+    document.getElementById('t-id').value = t.id || '';
+    document.getElementById('t-type').value = t.type || 'expense';
+    document.getElementById('t-amount').value = t.amount || '';
+    document.getElementById('t-category').value = t.category || '';
+    document.getElementById('t-date').value = t.date || '';
+    document.getElementById('t-desc').value = t.description || '';
+    document.getElementById('t-notes').value = t.notes || '';
+    document.getElementById('t-account').value = t.account_id || '';
+
+    // 5. Update form UI
+    document.getElementById('t-submit-btn').textContent = 'Update Transaction';
+    document.getElementById('t-delete-btn').style.display = 'inline-block';
+
+    // 6. Show modal
+    document.getElementById('transaction-modal').style.display = 'flex';
+};
 ```
 
 ---
 
-## Implementation Steps
+## Issue #2: CSV Import - Missing Form Elements
+**File**: `transactions.js` lines 570-591
+**Severity**: 🔴 Critical
+**Impact**: CSV import crashes immediately - feature completely broken
+**Time to Fix**: 30 minutes
 
-### Step 1: Create `budgets.js` (2 hours)
+**Problem**: Code references DOM elements that don't exist in HTML:
+- `csv-account-select` ❌
+- `csv-ai-analyze` ❌
+- `import-log` ❌
 
-**Create**: `budgets.js` (new file)
+**Error Message**:
+```
+Cannot read properties of null (reading 'value')
+```
+
+**Fix**: Update CSV modal in `renderTransactions()` around line 280:
 
 ```javascript
-import { supabaseClient } from './supabaseClient.js';
-import { state } from './state.js';
-import { sanitizeInput, formatCurrency } from './utils.js';
+// Inside renderTransactions() function, update CSV modal HTML:
+<div id="csv-import-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" id="close-csv-modal">&times;</span>
+        <h2>Import CSV</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Upload a CSV file with columns: Date, Description, Amount, Type, Category
+        </p>
 
-/**
- * Loads budgets from Supabase
- */
-const loadBudgets = async () => {
-    if (!state.user) return;
-
-    try {
-        const { data: budgets, error } = await supabaseClient
-            .from('budgets')
-            .select('*')
-            .eq('user_id', state.user.id);
-
-        if (error) throw error;
-        state.budgets = budgets || [];
-    } catch (error) {
-        console.error('Error loading budgets:', error);
-    }
-};
-
-/**
- * Calculates spending for a category in current month
- */
-const getCategorySpending = (category) => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    return state.transactions
-        .filter(t =>
-            t.category === category &&
-            t.type === 'expense' &&
-            new Date(t.date) >= startOfMonth &&
-            new Date(t.date) <= endOfMonth
-        )
-        .reduce((sum, t) => sum + t.amount, 0);
-};
-
-/**
- * Renders the Budgets view
- */
-export const renderBudgets = () => {
-    const contentArea = document.getElementById('content-area');
-
-    // Calculate budget status for each category
-    const budgetData = state.budgets.map(b => {
-        const spent = getCategorySpending(b.category);
-        const percentage = (spent / b.amount) * 100;
-        const remaining = b.amount - spent;
-
-        let status = 'good';
-        if (percentage >= 100) status = 'exceeded';
-        else if (percentage >= 80) status = 'warning';
-
-        return { ...b, spent, percentage, remaining, status };
-    });
-
-    const budgetsHTML = budgetData.length > 0
-        ? budgetData.map(b => `
-            <div class="budget-card budget-${b.status}">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                    <div>
-                        <h4 style="margin: 0 0 0.5rem 0;">${sanitizeInput(b.category)}</h4>
-                        <small style="color: var(--text-secondary);">
-                            ${formatCurrency(b.spent)} / ${formatCurrency(b.amount)}
-                        </small>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn-icon edit-budget-btn" data-id="${b.id}" title="Edit">
-                            <i class="fa-solid fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete-budget-btn" data-id="${b.id}" title="Delete">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Progress Bar -->
-                <div class="progress-bar">
-                    <div class="progress-fill progress-${b.status}" style="width: ${Math.min(b.percentage, 100)}%"></div>
-                </div>
-
-                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.9rem;">
-                    <span style="color: ${b.remaining >= 0 ? 'var(--success)' : 'var(--danger)'};">
-                        ${b.remaining >= 0 ? 'Remaining' : 'Over'}: ${formatCurrency(Math.abs(b.remaining))}
-                    </span>
-                    <span style="color: var(--text-secondary);">${b.percentage.toFixed(0)}%</span>
-                </div>
-            </div>
-        `).join('')
-        : '<div class="empty-state"><i class="fa-solid fa-wallet"></i><p>No budgets set. Create your first budget!</p></div>';
-
-    contentArea.innerHTML = `
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3>Monthly Budgets</h3>
-                <button class="btn btn-primary btn-sm" id="open-budget-modal-btn">
-                    <i class="fa-solid fa-plus"></i> Add Budget
-                </button>
-            </div>
-
-            <div class="budgets-grid">
-                ${budgetsHTML}
-            </div>
+        <!-- ADD THIS: Account Selector -->
+        <div class="form-group">
+            <label for="csv-account-select">Link to Account (Optional)</label>
+            <select id="csv-account-select" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px;">
+                <option value="">No Account Link</option>
+                ${state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+            </select>
         </div>
-    `;
 
-    // Event delegation for buttons
-    attachBudgetEventListeners();
-};
+        <!-- ADD THIS: AI Analyze Checkbox -->
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" id="csv-ai-analyze">
+                <span>Analyze transactions with AI after import</span>
+            </label>
+        </div>
 
-/**
- * Handles budget form submission
- */
-const handleBudgetSubmit = async (e) => {
-    e.preventDefault();
+        <!-- Existing file input -->
+        <input type="file" id="csv-file-input" accept=".csv" style="margin-bottom: 1rem;">
+        <button class="btn btn-primary btn-block" id="process-csv-btn">Import CSV</button>
 
-    const id = document.getElementById('budget-id').value;
-    const category = document.getElementById('budget-category').value.trim();
-    const amount = parseFloat(document.getElementById('budget-amount').value);
+        <!-- ADD THIS: Import Log -->
+        <div id="import-log" style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 4px; max-height: 200px; overflow-y: auto; display: none;">
+            <strong>Import Log:</strong>
+            <div id="import-log-content"></div>
+        </div>
+    </div>
+</div>
+```
 
-    if (!category || amount <= 0) {
-        alert('Please enter a valid category and amount.');
-        return;
-    }
+**Also update** `processCSVImport()` to show/hide log:
+```javascript
+// At start of processCSVImport, show log
+const importLog = document.getElementById('import-log');
+if (importLog) importLog.style.display = 'block';
 
-    const budgetData = {
-        user_id: state.user.id,
-        category,
-        amount,
-        period: 'monthly'
-    };
+// Update log content
+const logContent = document.getElementById('import-log-content');
+if (logContent) {
+    logContent.innerHTML += `<div>✅ Imported ${successCount} transactions</div>`;
+}
+```
+
+---
+
+## Issue #3: Transaction Modal - Missing Null Checks
+**File**: `main.js` lines 101-108
+**Severity**: 🔴 Critical
+**Impact**: Crashes when clicking "Add Transaction" if modal not ready
+**Time to Fix**: 10 minutes
+
+**Problem**:
+```javascript
+addTxBtn.addEventListener('click', () => {
+    document.getElementById('t-id').value = '';  // ❌ Could be null
+    document.getElementById('t-submit-btn').textContent = 'Add Transaction';  // ❌
+    // ... etc
+});
+```
+
+**Fix** (in main.js DOMContentLoaded):
+```javascript
+const addTxBtn = document.getElementById('add-transaction-btn');
+if (addTxBtn) {
+    addTxBtn.addEventListener('click', () => {
+        // Get all form elements with null checks
+        const tIdEl = document.getElementById('t-id');
+        const tSubmitBtn = document.getElementById('t-submit-btn');
+        const deleteBtn = document.getElementById('t-delete-btn');
+        const modal = document.getElementById('transaction-modal');
+
+        // Safely update elements
+        if (tIdEl) tIdEl.value = '';
+        if (tSubmitBtn) tSubmitBtn.textContent = 'Add Transaction';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        if (modal) modal.style.display = 'flex';
+    });
+}
+```
+
+---
+
+## Issue #4: Missing Global Transaction Form Handler
+**File**: `main.js` (missing)
+**Severity**: 🔴 Critical
+**Impact**: Transaction form doesn't work from dashboard or other views
+**Time to Fix**: 5 minutes
+
+**Problem**: Form only works when on Transactions page because handler is attached in `renderTransactions()`.
+
+**Fix**: Add to `main.js` in DOMContentLoaded section (around line 110):
+```javascript
+// Global Transaction Form Submit Listener
+const transactionForm = document.getElementById('transaction-form');
+if (transactionForm) {
+    transactionForm.addEventListener('submit', handleTransactionSubmit);
+}
+
+// Also handle modal close buttons globally
+const closeTxModal = document.getElementById('close-tx-modal');
+if (closeTxModal) {
+    closeTxModal.addEventListener('click', () => {
+        const modal = document.getElementById('transaction-modal');
+        if (modal) modal.style.display = 'none';
+    });
+}
+```
+
+---
+
+# 🟠 HIGH SEVERITY ISSUES (Data Integrity & Memory Leaks)
+
+## Issue #5: Delete Transaction Doesn't Update Account Balance
+**File**: `transactions.js` lines 146-161
+**Severity**: 🟠 High
+**Impact**: Account balances become permanently incorrect
+**Time to Fix**: 20 minutes
+
+**Problem**: When deleting a transaction, the account balance is not reverted, causing data corruption.
+
+**Example**:
+1. User has $1,000 in checking account
+2. User adds $500 expense transaction → balance becomes $500
+3. User deletes that transaction → balance stays at $500 (should be $1,000)
+
+**Fix**:
+```javascript
+export const deleteTransaction = async (id) => {
+    if (!confirm('Are you sure you want to delete this transaction?')) return;
 
     try {
-        if (id) {
-            const { error } = await supabaseClient
-                .from('budgets')
-                .update(budgetData)
-                .eq('id', id);
-            if (error) throw error;
-        } else {
-            const { error } = await supabaseClient
-                .from('budgets')
-                .insert([budgetData]);
-            if (error) throw error;
+        // 1. Find the transaction to get account info
+        const transaction = state.transactions.find(t => t.id === id);
+        if (!transaction) {
+            throw new Error('Transaction not found');
         }
 
-        await loadBudgets();
-        renderBudgets();
-        document.getElementById('budget-modal').style.display = 'none';
-    } catch (error) {
-        console.error('Error saving budget:', error);
-        alert('Failed to save budget. Please try again.');
-    }
-};
+        // 2. Revert account balance if transaction was linked to an account
+        if (transaction.account_id) {
+            // Calculate the reverse change
+            // If it was income, subtract it (revert the addition)
+            // If it was expense, add it back (revert the subtraction)
+            const revertChange = transaction.type === 'income'
+                ? -transaction.amount  // Remove the income
+                : transaction.amount;   // Add back the expense
 
-/**
- * Deletes a budget
- */
-const deleteBudget = async (id) => {
-    if (!confirm('Are you sure you want to delete this budget?')) return;
+            await updateAccountBalance(transaction.account_id, revertChange);
+        }
 
-    try {
+        // 3. Delete the transaction from database
         const { error } = await supabaseClient
-            .from('budgets')
+            .from('transactions')
             .delete()
             .eq('id', id);
 
         if (error) throw error;
 
-        await loadBudgets();
-        renderBudgets();
+        // 4. Reload data to sync state
+        await loadData();
+
+        // 5. Re-render current view
+        if (window.location.hash.includes('transactions')) {
+            renderTransactions();
+        }
+
+        alert('Transaction deleted successfully');
     } catch (error) {
-        console.error('Error deleting budget:', error);
-        alert('Failed to delete budget.');
-    }
-};
-
-// Event listener attachment function
-const attachBudgetEventListeners = () => {
-    const budgetsGrid = document.querySelector('.budgets-grid');
-    if (budgetsGrid) {
-        budgetsGrid.addEventListener('click', (e) => {
-            const deleteBtn = e.target.closest('.delete-budget-btn');
-            const editBtn = e.target.closest('.edit-budget-btn');
-
-            if (deleteBtn) deleteBudget(deleteBtn.dataset.id);
-            else if (editBtn) editBudget(editBtn.dataset.id);
-        });
-    }
-
-    const openModalBtn = document.getElementById('open-budget-modal-btn');
-    if (openModalBtn) {
-        openModalBtn.addEventListener('click', () => {
-            document.getElementById('budget-form').reset();
-            document.getElementById('budget-id').value = '';
-            document.getElementById('budget-modal').style.display = 'flex';
-        });
+        console.error('Error deleting transaction:', error);
+        alert('Failed to delete transaction: ' + error.message);
     }
 };
 ```
 
 ---
 
-### Step 2: Add Budget Modal to `index.html` (30 minutes)
+## Issue #6: Dynamic Import Memory Leak
+**File**: `main.js` lines 125-129
+**Severity**: 🟠 High
+**Impact**: Memory leak - performance degrades over time
+**Time to Fix**: 5 minutes
 
-Add after the Goals modal (around line 210):
-
-```html
-<!-- Budget Modal -->
-<div id="budget-modal" class="modal">
-    <div class="modal-content">
-        <span class="close-modal" id="close-budget-modal">&times;</span>
-        <h2>Add Budget</h2>
-        <form id="budget-form">
-            <input type="hidden" id="budget-id">
-
-            <div class="form-group">
-                <label for="budget-category">Category</label>
-                <input type="text" id="budget-category" list="category-list" required>
-            </div>
-
-            <div class="form-group">
-                <label for="budget-amount">Monthly Budget Amount</label>
-                <input type="number" id="budget-amount" step="0.01" min="0" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary" id="budget-submit-btn">
-                Add Budget
-            </button>
-        </form>
-    </div>
-</div>
-```
-
----
-
-### Step 3: Add Budget Styles to `style.css` (30 minutes)
-
-Add at the end of the file:
-
-```css
-/* ========================================
-   BUDGETS FEATURE
-   ======================================== */
-
-.budgets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-}
-
-.budget-card {
-    background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.budget-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.budget-card.budget-good {
-    border-left: 4px solid var(--success);
-}
-
-.budget-card.budget-warning {
-    border-left: 4px solid #FFA500;
-}
-
-.budget-card.budget-exceeded {
-    border-left: 4px solid var(--danger);
-}
-
-.progress-good {
-    background: linear-gradient(90deg, #22c55e, #16a34a);
-}
-
-.progress-warning {
-    background: linear-gradient(90deg, #FFA500, #FF8C00);
-}
-
-.progress-exceeded {
-    background: linear-gradient(90deg, #ef4444, #dc2626);
-}
-```
-
----
-
-### Step 4: Update `state.js` (5 minutes)
-
-Add budgets to state:
-
+**Problem**:
 ```javascript
-export const state = {
-    user: null,
-    transactions: [],
-    categories: [],
-    accounts: [],
-    goals: [],
-    budgets: []  // Add this line
-};
+deleteTxBtn.addEventListener('click', () => {
+    import('./transactions.js').then(module => {  // ❌ Creates closures
+        module.deleteTransaction(txId);
+    });
+});
 ```
 
----
-
-### Step 5: Update `main.js` Navigation (15 minutes)
-
-Add budget navigation item and import:
-
+**Fix**: Use already-imported function:
 ```javascript
-// Add import at top
-import { renderBudgets } from './budgets.js';
-
-// Add to navigation object (around line 40)
-const navigation = {
-    dashboard: renderDashboard,
-    transactions: renderTransactions,
-    budgets: renderBudgets,  // Add this
-    accounts: renderAccounts,
-    categories: renderCategories,
-    goals: renderGoals
-};
-```
-
-Update sidebar HTML to include Budgets link.
-
----
-
-### Step 6: Update `dataLoader.js` (15 minutes)
-
-Add budget loading:
-
-```javascript
-// Add to loadData() function
-try {
-    const { data: budgets, error: budgetsError } = await supabaseClient
-        .from('budgets')
-        .select('*')
-        .eq('user_id', state.user.id);
-
-    if (budgetsError) console.error('Error fetching budgets:', budgetsError);
-    state.budgets = budgets || [];
-} catch (e) { console.error('Exception fetching budgets:', e); }
-```
-
----
-
-## Testing Checklist
-
-- [ ] Create budget for a category
-- [ ] Add transactions that exceed budget
-- [ ] Verify progress bar updates correctly
-- [ ] Test edit budget functionality
-- [ ] Test delete budget with confirmation
-- [ ] Verify budget calculations (month boundaries)
-- [ ] Test with no budgets (empty state)
-- [ ] Test budget warnings at 80%, 100%, 110%
-
----
-
-# 2. 📊 Analytics & Insights Dashboard (3-4 hours)
-
-**Status**: ⏳ Not started
-**Priority**: High - Visual data insights
-
-## Overview
-
-Create an analytics dashboard with charts showing spending trends, category breakdowns, and financial insights.
-
----
-
-## Step 1: Install Chart Library (15 minutes)
-
-Add Chart.js via CDN to `index.html` (in `<head>`):
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-```
-
----
-
-## Step 2: Create `analytics.js` (2-3 hours)
-
-**Create**: `analytics.js` (new file)
-
-```javascript
-import { state } from './state.js';
-import { formatCurrency, getCategoryColor } from './utils.js';
-
-/**
- * Renders the Analytics Dashboard
- */
-export const renderAnalytics = () => {
-    const contentArea = document.getElementById('content-area');
-
-    contentArea.innerHTML = `
-        <div class="analytics-container">
-            <h2>Financial Analytics</h2>
-
-            <!-- Summary Cards -->
-            <div class="analytics-summary">
-                <div class="summary-card">
-                    <h4>Total Income (This Month)</h4>
-                    <p class="summary-value" id="total-income">$0.00</p>
-                </div>
-                <div class="summary-card">
-                    <h4>Total Expenses (This Month)</h4>
-                    <p class="summary-value" id="total-expenses">$0.00</p>
-                </div>
-                <div class="summary-card">
-                    <h4>Net Savings (This Month)</h4>
-                    <p class="summary-value" id="net-savings">$0.00</p>
-                </div>
-                <div class="summary-card">
-                    <h4>Savings Rate</h4>
-                    <p class="summary-value" id="savings-rate">0%</p>
-                </div>
-            </div>
-
-            <!-- Charts Row 1 -->
-            <div class="charts-row">
-                <div class="card chart-card">
-                    <h3>Spending by Category</h3>
-                    <canvas id="category-pie-chart"></canvas>
-                </div>
-                <div class="card chart-card">
-                    <h3>Income vs Expenses</h3>
-                    <canvas id="income-expense-bar"></canvas>
-                </div>
-            </div>
-
-            <!-- Charts Row 2 -->
-            <div class="charts-row">
-                <div class="card chart-card-full">
-                    <h3>Spending Trend (Last 6 Months)</h3>
-                    <canvas id="spending-trend-line"></canvas>
-                </div>
-            </div>
-
-            <!-- Top Spending Categories -->
-            <div class="card">
-                <h3>Top Spending Categories (This Month)</h3>
-                <div id="top-categories-list"></div>
-            </div>
-        </div>
-    `;
-
-    calculateSummaryStats();
-    renderCategoryPieChart();
-    renderIncomeExpenseBar();
-    renderSpendingTrendLine();
-    renderTopCategories();
-};
-
-/**
- * Calculates summary statistics
- */
-const calculateSummaryStats = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const thisMonthTransactions = state.transactions.filter(t =>
-        new Date(t.date) >= startOfMonth
-    );
-
-    const income = thisMonthTransactions
-        .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    const expenses = thisMonthTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    const netSavings = income - expenses;
-    const savingsRate = income > 0 ? (netSavings / income) * 100 : 0;
-
-    document.getElementById('total-income').textContent = formatCurrency(income);
-    document.getElementById('total-expenses').textContent = formatCurrency(expenses);
-    document.getElementById('net-savings').textContent = formatCurrency(netSavings);
-    document.getElementById('net-savings').style.color = netSavings >= 0 ? 'var(--success)' : 'var(--danger)';
-    document.getElementById('savings-rate').textContent = savingsRate.toFixed(1) + '%';
-    document.getElementById('savings-rate').style.color = savingsRate >= 20 ? 'var(--success)' : 'var(--warning)';
-};
-
-/**
- * Renders category breakdown pie chart
- */
-const renderCategoryPieChart = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const categorySpending = {};
-    state.transactions
-        .filter(t => t.type === 'expense' && new Date(t.date) >= startOfMonth)
-        .forEach(t => {
-            categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
-        });
-
-    const labels = Object.keys(categorySpending);
-    const data = Object.values(categorySpending);
-    const colors = labels.map(cat => getCategoryColor(cat));
-
-    const ctx = document.getElementById('category-pie-chart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors,
-                borderWidth: 2,
-                borderColor: '#1a1a2e'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { color: '#e0e0e0' }
-                }
-            }
+const deleteTxBtn = document.getElementById('t-delete-btn');
+if (deleteTxBtn) {
+    deleteTxBtn.addEventListener('click', async () => {
+        const txId = document.getElementById('t-id').value;
+        if (txId && confirm('Are you sure you want to delete this transaction?')) {
+            await deleteTransaction(txId);  // Use top-level import
+            const modal = document.getElementById('transaction-modal');
+            if (modal) modal.style.display = 'none';
         }
     });
-};
+}
+```
 
-/**
- * Renders income vs expense bar chart (last 6 months)
- */
-const renderIncomeExpenseBar = () => {
-    const months = [];
-    const incomeData = [];
-    const expenseData = [];
+---
 
-    for (let i = 5; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+## Issue #7: Filter Event Listeners Memory Leak
+**File**: `transactions.js` lines 301-309
+**Severity**: 🟠 High
+**Impact**: Filter inputs fire multiple times, performance degrades
+**Time to Fix**: 15 minutes
 
-        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        months.push(monthName);
+**Problem**: Every time `renderTransactions()` is called, new listeners are added without removing old ones.
 
-        const monthTransactions = state.transactions.filter(t => {
-            const txDate = new Date(t.date);
-            return txDate >= monthStart && txDate <= monthEnd;
-        });
+**Fix**:
+```javascript
+// Create debounced filter once at module level
+const debouncedFilter = debounce(filterTransactions, 300);
 
-        const income = monthTransactions
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
+// In renderTransactions(), use this pattern:
+const filterInputs = ['filter-search', 'filter-type', 'filter-category', 'filter-account', 'filter-date-from', 'filter-date-to'];
 
-        const expenses = monthTransactions
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
+filterInputs.forEach(id => {
+    const element = document.getElementById(id);
+    if (!element) return;
 
-        incomeData.push(income);
-        expenseData.push(expenses);
+    // Remove all listeners by cloning element
+    const newElement = element.cloneNode(true);
+    element.parentNode.replaceChild(newElement, element);
+
+    // Add fresh listener
+    if (id === 'filter-search') {
+        newElement.addEventListener('input', debouncedFilter);
+    } else {
+        newElement.addEventListener('input', filterTransactions);
+    }
+});
+```
+
+---
+
+## Issue #8: Budget Form Submit Memory Leak
+**File**: `budgets.js` lines 227-231
+**Severity**: 🟠 High
+**Impact**: Budget saved multiple times
+**Time to Fix**: 10 minutes
+
+**Problem**:
+```javascript
+budgetForm.removeEventListener('submit', handleBudgetSubmit);
+budgetForm.addEventListener('submit', handleBudgetSubmit);
+```
+This doesn't properly remove the listener because function reference may differ.
+
+**Fix**:
+```javascript
+// At module level, store the handler
+let budgetFormHandler = null;
+
+// In attachBudgetEventListeners():
+const budgetForm = document.getElementById('budget-form');
+if (budgetForm) {
+    // Remove old handler if exists
+    if (budgetFormHandler) {
+        budgetForm.removeEventListener('submit', budgetFormHandler);
     }
 
-    const ctx = document.getElementById('income-expense-bar').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: months,
-            datasets: [
-                {
-                    label: 'Income',
-                    data: incomeData,
-                    backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                    borderColor: 'rgb(34, 197, 94)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Expenses',
-                    data: expenseData,
-                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                    borderColor: 'rgb(239, 68, 68)',
-                    borderWidth: 1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    labels: { color: '#e0e0e0' }
-                }
-            },
-            scales: {
-                x: { ticks: { color: '#e0e0e0' } },
-                y: { ticks: { color: '#e0e0e0' } }
-            }
-        }
-    });
+    // Create and store new handler
+    budgetFormHandler = handleBudgetSubmit;
+    budgetForm.addEventListener('submit', budgetFormHandler);
+}
+```
+
+---
+
+## Issue #9: Goals Form Submit Memory Leak
+**File**: `goals.js` lines 252-256
+**Severity**: 🟠 High
+**Impact**: Goal operations fire multiple times
+**Time to Fix**: 10 minutes
+
+**Fix**: Same pattern as Issue #8 (budget form fix)
+
+---
+
+## Issue #10: Settings Event Listeners Memory Leak
+**File**: `main.js` lines 445-462
+**Severity**: 🟠 High
+**Impact**: Export/import functions fire multiple times
+**Time to Fix**: 15 minutes
+
+**Problem**: Every time `renderSettings()` is called, 6 new event listeners are added:
+- save-settings-btn
+- export-json-btn
+- import-json-btn
+- export-csv-btn
+- export-pdf-btn
+- theme-selector
+
+**Fix**: Use event delegation or clone elements before adding listeners.
+
+---
+
+## Issue #11: Accounts Form Submit Memory Leak
+**File**: `accounts.js` line 113
+**Severity**: 🟠 High
+**Impact**: Account operations fire multiple times
+**Time to Fix**: 10 minutes
+
+**Fix**: Same pattern as budgets/goals fix
+
+---
+
+## Issue #12: Swipe Listeners Memory Leak
+**File**: `transactions.js` lines 529-561
+**Severity**: 🟠 High
+**Impact**: Touch gestures trigger multiple times on mobile
+**Time to Fix**: 15 minutes
+
+**Fix**: Track if listeners already attached:
+```javascript
+// At module level
+let swipeListenersAttached = false;
+
+// In attachSwipeListeners():
+const attachSwipeListeners = () => {
+    if (swipeListenersAttached) return;  // Only attach once
+
+    const transactionList = document.getElementById('transaction-list-container');
+    if (!transactionList) return;
+
+    // ... attach listeners
+    swipeListenersAttached = true;
 };
+```
 
-/**
- * Renders spending trend line chart
- */
-const renderSpendingTrendLine = () => {
-    const months = [];
-    const spendingData = [];
+---
 
-    for (let i = 5; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(date.getMonth() - i);
-        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+# 🟡 MEDIUM SEVERITY ISSUES
 
-        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        months.push(monthName);
+## Issue #13: Race Condition in Transaction Update
+**File**: `transactions.js` line 63
+**Severity**: 🟡 Medium
+**Impact**: Stale data could cause incorrect balance updates
+**Time to Fix**: 10 minutes
 
-        const spending = state.transactions
-            .filter(t => {
-                const txDate = new Date(t.date);
-                return t.type === 'expense' && txDate >= monthStart && txDate <= monthEnd;
-            })
-            .reduce((sum, t) => sum + t.amount, 0);
+**Problem**: Uses in-memory state instead of fetching fresh from database:
+```javascript
+const originalTransaction = state.transactions.find(t => t.id === id);
+```
 
-        spendingData.push(spending);
+**Fix**: Fetch from database to ensure fresh data:
+```javascript
+// At start of handleTransactionSubmit when id exists:
+const { data: originalTransaction, error: fetchError } = await supabaseClient
+    .from('transactions')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+if (fetchError || !originalTransaction) {
+    throw new Error('Original transaction not found');
+}
+```
+
+---
+
+## Issue #14: Inline onclick Handler
+**File**: `main.js` line 272
+**Severity**: 🟡 Medium
+**Impact**: Code inconsistency, CSP policy issues
+**Time to Fix**: 5 minutes
+
+**Problem**: Uses inline onclick while rest of code uses addEventListener.
+
+**Fix**: Use data attribute + existing navigation system:
+```javascript
+<button class="btn btn-sm btn-block nav-link" data-page="transactions">View All</button>
+```
+
+---
+
+## Issue #15: Goal Milestone Notifications Spam
+**File**: `notifications.js` lines 109-127
+**Severity**: 🟡 Medium
+**Impact**: Same notification shown repeatedly, annoying UX
+**Time to Fix**: 20 minutes
+
+**Problem**: Notifications trigger every time `checkGoalMilestones()` is called if percentage is in milestone range.
+
+**Fix**: Track shown milestones in localStorage:
+```javascript
+// At module level
+const SHOWN_MILESTONES_KEY = 'financeflow-shown-milestones';
+
+const getShownMilestones = () => {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(SHOWN_MILESTONES_KEY) || '[]'));
+    } catch {
+        return new Set();
     }
-
-    const ctx = document.getElementById('spending-trend-line').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: months,
-            datasets: [{
-                label: 'Total Spending',
-                data: spendingData,
-                borderColor: 'rgb(139, 92, 246)',
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    labels: { color: '#e0e0e0' }
-                }
-            },
-            scales: {
-                x: { ticks: { color: '#e0e0e0' } },
-                y: { ticks: { color: '#e0e0e0' } }
-            }
-        }
-    });
 };
 
-/**
- * Renders top spending categories list
- */
-const renderTopCategories = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const categorySpending = {};
-    state.transactions
-        .filter(t => t.type === 'expense' && new Date(t.date) >= startOfMonth)
-        .forEach(t => {
-            categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
-        });
-
-    const sorted = Object.entries(categorySpending)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-
-    const html = sorted.map(([category, amount], index) => `
-        <div style="display: flex; justify-content: space-between; padding: 0.75rem; border-bottom: 1px solid var(--border-color);">
-            <span>${index + 1}. ${category}</span>
-            <span style="font-weight: 600; color: var(--accent-primary);">${formatCurrency(amount)}</span>
-        </div>
-    `).join('');
-
-    document.getElementById('top-categories-list').innerHTML = html || '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No data available</p>';
-};
-```
-
----
-
-## Step 3: Add Analytics Styles to `style.css` (30 minutes)
-
-```css
-/* ========================================
-   ANALYTICS DASHBOARD
-   ======================================== */
-
-.analytics-container {
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.analytics-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.summary-card {
-    background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    text-align: center;
-}
-
-.summary-card h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.summary-value {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--accent-primary);
-}
-
-.charts-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.chart-card {
-    min-height: 350px;
-}
-
-.chart-card-full {
-    grid-column: 1 / -1;
-    min-height: 300px;
-}
-
-.chart-card canvas,
-.chart-card-full canvas {
-    max-height: 300px;
-}
-```
-
----
-
-## Step 4: Update Navigation (15 minutes)
-
-Add to `main.js`:
-
-```javascript
-import { renderAnalytics } from './analytics.js';
-
-const navigation = {
-    dashboard: renderDashboard,
-    transactions: renderTransactions,
-    analytics: renderAnalytics,  // Add this
-    budgets: renderBudgets,
-    accounts: renderAccounts,
-    categories: renderCategories,
-    goals: renderGoals
-};
-```
-
----
-
-## Testing Checklist
-
-- [ ] Verify summary cards calculate correctly
-- [ ] Test pie chart with multiple categories
-- [ ] Verify bar chart shows last 6 months
-- [ ] Test line chart trend accuracy
-- [ ] Verify top categories list (top 5)
-- [ ] Test with no transactions (empty state)
-- [ ] Verify chart responsiveness on mobile
-
----
-
-# 3. 📤 Export & Reports (2-3 hours)
-
-**Status**: ⏳ Not started
-**Priority**: Medium - Professional feature
-
-## Overview
-
-Export transactions to CSV/Excel and generate PDF reports.
-
----
-
-## Step 1: Create `export.js` (1.5 hours)
-
-**Create**: `export.js` (new file)
-
-```javascript
-import { state } from './state.js';
-import { formatCurrency } from './utils.js';
-
-/**
- * Exports transactions to CSV
- */
-export const exportToCSV = (transactions = state.transactions) => {
-    if (transactions.length === 0) {
-        alert('No transactions to export');
-        return;
-    }
-
-    const headers = ['Date', 'Description', 'Category', 'Account', 'Type', 'Amount', 'Notes'];
-    const rows = transactions.map(t => [
-        t.date,
-        t.description || '',
-        t.category || '',
-        state.accounts.find(a => a.id === t.account_id)?.name || '',
-        t.type,
-        t.amount,
-        t.notes || ''
-    ]);
-
-    const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    downloadFile(csvContent, 'transactions.csv', 'text/csv');
+const saveShownMilestone = (goalId, milestone) => {
+    const shown = getShownMilestones();
+    shown.add(`${goalId}-${milestone}`);
+    localStorage.setItem(SHOWN_MILESTONES_KEY, JSON.stringify([...shown]));
 };
 
-/**
- * Exports to Excel-compatible format
- */
-export const exportToExcel = (transactions = state.transactions) => {
-    if (transactions.length === 0) {
-        alert('No transactions to export');
-        return;
-    }
-
-    // Excel prefers tab-separated values
-    const headers = ['Date', 'Description', 'Category', 'Account', 'Type', 'Amount', 'Notes'];
-    const rows = transactions.map(t => [
-        t.date,
-        t.description || '',
-        t.category || '',
-        state.accounts.find(a => a.id === t.account_id)?.name || '',
-        t.type,
-        t.amount,
-        t.notes || ''
-    ]);
-
-    const tsvContent = [
-        headers.join('\t'),
-        ...rows.map(row => row.join('\t'))
-    ].join('\n');
-
-    downloadFile(tsvContent, 'transactions.xls', 'application/vnd.ms-excel');
-};
-
-/**
- * Generates and downloads a PDF report
- */
-export const exportToPDF = async () => {
-    // Use browser's print functionality to generate PDF
-    const now = new Date();
-    const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-    const reportWindow = window.open('', '_blank');
-    reportWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Financial Report - ${monthName}</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    padding: 2rem;
-                    color: #333;
-                }
-                h1 { color: #1a1a2e; margin-bottom: 0.5rem; }
-                h2 { color: #8b5cf6; margin-top: 2rem; }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-top: 1rem;
-                }
-                th, td {
-                    border: 1px solid #ddd;
-                    padding: 0.75rem;
-                    text-align: left;
-                }
-                th {
-                    background: #f5f5f5;
-                    font-weight: 600;
-                }
-                .summary {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 1rem;
-                    margin: 2rem 0;
-                }
-                .summary-card {
-                    border: 2px solid #8b5cf6;
-                    padding: 1rem;
-                    border-radius: 8px;
-                }
-                .summary-card h3 {
-                    margin: 0 0 0.5rem 0;
-                    font-size: 0.9rem;
-                    color: #666;
-                }
-                .summary-card p {
-                    margin: 0;
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: #8b5cf6;
-                }
-                @media print {
-                    body { padding: 1rem; }
-                }
-            </style>
-        </head>
-        <body>
-            <h1>FinanceFlow Financial Report</h1>
-            <p>Report Period: ${monthName}</p>
-            <p>Generated: ${new Date().toLocaleString()}</p>
-
-            ${generateReportContent()}
-
-            <script>
-                window.onload = () => {
-                    window.print();
-                    window.onafterprint = () => window.close();
-                };
-            </script>
-        </body>
-        </html>
-    `);
-    reportWindow.document.close();
-};
-
-/**
- * Generates HTML content for PDF report
- */
-const generateReportContent = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const thisMonthTransactions = state.transactions.filter(t =>
-        new Date(t.date) >= startOfMonth
-    );
-
-    const income = thisMonthTransactions
-        .filter(t => t.type === 'income')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    const expenses = thisMonthTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    const netSavings = income - expenses;
-
-    const categorySpending = {};
-    thisMonthTransactions
-        .filter(t => t.type === 'expense')
-        .forEach(t => {
-            categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
-        });
-
-    const topCategories = Object.entries(categorySpending)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5);
-
-    return `
-        <div class="summary">
-            <div class="summary-card">
-                <h3>Total Income</h3>
-                <p>${formatCurrency(income)}</p>
-            </div>
-            <div class="summary-card">
-                <h3>Total Expenses</h3>
-                <p>${formatCurrency(expenses)}</p>
-            </div>
-            <div class="summary-card">
-                <h3>Net Savings</h3>
-                <p style="color: ${netSavings >= 0 ? '#22c55e' : '#ef4444'}">${formatCurrency(netSavings)}</p>
-            </div>
-        </div>
-
-        <h2>Top Spending Categories</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Category</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${topCategories.map(([cat, amt], i) => `
-                    <tr>
-                        <td>${i + 1}</td>
-                        <td>${cat}</td>
-                        <td>${formatCurrency(amt)}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-
-        <h2>Recent Transactions</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${thisMonthTransactions.slice(0, 20).map(t => `
-                    <tr>
-                        <td>${t.date}</td>
-                        <td>${t.description || '-'}</td>
-                        <td>${t.category}</td>
-                        <td style="text-transform: capitalize;">${t.type}</td>
-                        <td>${formatCurrency(t.amount)}</td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-};
-
-/**
- * Helper function to download file
- */
-const downloadFile = (content, filename, mimeType) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-};
-```
-
----
-
-## Step 2: Add Export Buttons to UI (1 hour)
-
-Update `transactions.js` to add export buttons:
-
-```javascript
-// Add export buttons to the transaction view
-<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-    <button class="btn btn-sm" id="export-csv-btn">
-        <i class="fa-solid fa-file-csv"></i> Export CSV
-    </button>
-    <button class="btn btn-sm" id="export-excel-btn">
-        <i class="fa-solid fa-file-excel"></i> Export Excel
-    </button>
-    <button class="btn btn-sm" id="export-pdf-btn">
-        <i class="fa-solid fa-file-pdf"></i> Export PDF
-    </button>
-</div>
-```
-
-Add event listeners in `renderTransactions()`:
-
-```javascript
-import { exportToCSV, exportToExcel, exportToPDF } from './export.js';
-
-// In renderTransactions function, after other event listeners:
-document.getElementById('export-csv-btn').addEventListener('click', () => exportToCSV());
-document.getElementById('export-excel-btn').addEventListener('click', () => exportToExcel());
-document.getElementById('export-pdf-btn').addEventListener('click', () => exportToPDF());
-```
-
----
-
-## Testing Checklist
-
-- [ ] Export to CSV with all transactions
-- [ ] Export to Excel with all transactions
-- [ ] Generate PDF report
-- [ ] Verify CSV opens correctly in Excel/Google Sheets
-- [ ] Test PDF print functionality
-- [ ] Test with filtered transactions
-- [ ] Test with empty transaction list
-
----
-
-# 4. 🔔 Smart Notifications (3-4 hours)
-
-**Status**: ⏳ Not started
-**Priority**: Medium - User engagement
-
-## Overview
-
-In-app notifications for goals, budgets, and unusual spending (without email).
-
----
-
-## Step 1: Create `notifications.js` (2 hours)
-
-**Create**: `notifications.js` (new file)
-
-```javascript
-import { state } from './state.js';
-import { formatCurrency } from './utils.js';
-
-/**
- * Notification types
- */
-const NOTIFICATION_TYPES = {
-    GOAL_MILESTONE: 'goal_milestone',
-    BUDGET_WARNING: 'budget_warning',
-    BUDGET_EXCEEDED: 'budget_exceeded',
-    UNUSUAL_SPENDING: 'unusual_spending'
-};
-
-/**
- * Shows in-app notification
- */
-export const showNotification = (message, type = 'info') => {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fa-solid ${getNotificationIcon(type)}"></i>
-            <span>${message}</span>
-        </div>
-        <button class="notification-close">&times;</button>
-    `;
-
-    document.body.appendChild(notification);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        notification.classList.add('notification-fade-out');
-        setTimeout(() => notification.remove(), 300);
-    }, 5000);
-
-    // Manual close
-    notification.querySelector('.notification-close').addEventListener('click', () => {
-        notification.remove();
-    });
-};
-
-/**
- * Gets icon for notification type
- */
-const getNotificationIcon = (type) => {
-    const icons = {
-        success: 'fa-circle-check',
-        warning: 'fa-triangle-exclamation',
-        danger: 'fa-circle-exclamation',
-        info: 'fa-circle-info'
-    };
-    return icons[type] || icons.info;
-};
-
-/**
- * Checks for goal milestones
- */
 export const checkGoalMilestones = () => {
-    state.goals.forEach(goal => {
-        const progress = (goal.current_amount / goal.target_amount) * 100;
+    if (!state.goals || state.goals.length === 0) return;
 
-        // Check for 50%, 75%, 100% milestones
-        const milestones = [50, 75, 100];
-        milestones.forEach(milestone => {
-            if (progress >= milestone && progress < milestone + 5) {
+    const shown = getShownMilestones();
+
+    state.goals.forEach(goal => {
+        const percentage = (goal.current_amount / goal.target_amount) * 100;
+
+        // Check 25%, 50%, 75%, 100% milestones
+        [25, 50, 75, 100].forEach(milestone => {
+            const milestoneKey = `${goal.id}-${milestone}`;
+
+            // Show notification if just hit milestone and haven't shown before
+            if (percentage >= milestone && percentage < milestone + 5 && !shown.has(milestoneKey)) {
                 showNotification(
-                    `🎉 Goal "${goal.name}" is ${milestone}% complete! Current: ${formatCurrency(goal.current_amount)}`,
-                    'success'
+                    `🎉 Goal "${goal.name}" is ${milestone}% complete!`,
+                    'success',
+                    8000
                 );
+                saveShownMilestone(goal.id, milestone);
             }
         });
     });
 };
 
-/**
- * Checks budget warnings
- */
-export const checkBudgetWarnings = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    state.budgets.forEach(budget => {
-        const spent = state.transactions
-            .filter(t =>
-                t.category === budget.category &&
-                t.type === 'expense' &&
-                new Date(t.date) >= startOfMonth
-            )
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const percentage = (spent / budget.amount) * 100;
-
-        if (percentage >= 100) {
-            showNotification(
-                `⚠️ Budget exceeded for "${budget.category}"! Spent: ${formatCurrency(spent)} / ${formatCurrency(budget.amount)}`,
-                'danger'
-            );
-        } else if (percentage >= 80) {
-            showNotification(
-                `⚠️ Budget warning for "${budget.category}": ${percentage.toFixed(0)}% used (${formatCurrency(spent)} / ${formatCurrency(budget.amount)})`,
-                'warning'
-            );
-        }
-    });
-};
-
-/**
- * Detects unusual spending patterns
- */
-export const checkUnusualSpending = () => {
-    // Get average daily spending for last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const recentExpenses = state.transactions
-        .filter(t => t.type === 'expense' && new Date(t.date) >= thirtyDaysAgo)
-        .map(t => t.amount);
-
-    if (recentExpenses.length < 10) return; // Not enough data
-
-    const avgSpending = recentExpenses.reduce((sum, amt) => sum + amt, 0) / recentExpenses.length;
-    const todayExpenses = state.transactions
-        .filter(t => t.type === 'expense' && t.date === new Date().toISOString().split('T')[0])
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    // Alert if today's spending is 2x average
-    if (todayExpenses > avgSpending * 2) {
-        showNotification(
-            `📊 Unusual spending detected today: ${formatCurrency(todayExpenses)} (avg: ${formatCurrency(avgSpending)})`,
-            'info'
-        );
-    }
-};
-
-/**
- * Runs all notification checks
- */
-export const runNotificationChecks = () => {
-    checkGoalMilestones();
-    checkBudgetWarnings();
-    checkUnusualSpending();
+// Add function to clear milestone tracking (useful for testing)
+export const clearMilestoneTracking = () => {
+    localStorage.removeItem(SHOWN_MILESTONES_KEY);
 };
 ```
 
 ---
 
-## Step 2: Add Notification Styles to `style.css` (30 minutes)
+## Issues #16-18: Additional Minor Memory Leaks
+**Files**: Various
+**Severity**: 🟡 Medium
+**Time to Fix**: 30 minutes total
 
-```css
-/* ========================================
-   NOTIFICATIONS
-   ======================================== */
+- Mobile menu listeners
+- Additional swipe gestures
+- Modal close buttons
 
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-md);
-    padding: 1rem 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 10000;
-    min-width: 300px;
-    max-width: 400px;
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(400px);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.notification-fade-out {
-    animation: fadeOut 0.3s ease;
-}
-
-@keyframes fadeOut {
-    to {
-        opacity: 0;
-        transform: translateX(400px);
-    }
-}
-
-.notification-content {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex: 1;
-}
-
-.notification-content i {
-    font-size: 1.25rem;
-}
-
-.notification-success {
-    border-left: 4px solid var(--success);
-}
-
-.notification-success i {
-    color: var(--success);
-}
-
-.notification-warning {
-    border-left: 4px solid #FFA500;
-}
-
-.notification-warning i {
-    color: #FFA500;
-}
-
-.notification-danger {
-    border-left: 4px solid var(--danger);
-}
-
-.notification-danger i {
-    color: var(--danger);
-}
-
-.notification-info {
-    border-left: 4px solid var(--accent-primary);
-}
-
-.notification-info i {
-    color: var(--accent-primary);
-}
-
-.notification-close {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.notification-close:hover {
-    color: var(--text-primary);
-}
-```
+**Fix**: Apply same cleanup patterns as above
 
 ---
 
-## Step 3: Trigger Notifications (1 hour)
+# 🟢 LOW SEVERITY ISSUES
 
-Update key functions to trigger notifications:
+## Issue #19: Type Coercion with Loose Equality
+**File**: `transactions.js` line 355
+**Severity**: 🟢 Low
+**Fix**: Change `!=` to `!==`
 
-**In `goals.js`** - After contributing to a goal:
+## Issue #20: Missing Try-Catch Around DOM Manipulation
+**Files**: Multiple
+**Severity**: 🟢 Low
+**Fix**: Wrap innerHTML assignments in try-catch
+
+## Issue #21: navigateTo Race Condition
+**File**: `auth.js` line 48
+**Severity**: 🟢 Low
+**Fix**: Check if function exists before calling
+
+## Issue #22: Missing Default Date in Transaction Form
+**File**: `main.js`
+**Severity**: 🟢 Low
+**Fix**: Set date input to today by default
+
+## Issue #23: dataLoader Error Handling
+**File**: `dataLoader.js`
+**Severity**: 🟢 Low
+**Fix**: Show user notifications on load failures
+
+## Issue #24: Additional Defensive Coding
+**Various Files**
+**Severity**: 🟢 Low
+**Fix**: Add more null checks and validation
+
+---
+
+# 📋 ACTION PLAN
+
+## Phase 1: Critical Fixes (1-2 hours) 🔥 **PRIORITY**
+
+**Must fix before deployment:**
+
+- [ ] Fix `editTransaction` undefined variables (15 min)
+- [ ] Add CSV import form elements (30 min)
+- [ ] Add null checks to modal handler (10 min)
+- [ ] Add global transaction form handler (5 min)
+
+**Total**: 1 hour
+
+---
+
+## Phase 2: Data Integrity (30 minutes) ⚠️ **HIGH PRIORITY**
+
+**Critical for data accuracy:**
+
+- [ ] Fix `deleteTransaction` to update account balance (20 min)
+- [ ] Fix transaction update race condition (10 min)
+
+**Total**: 30 minutes
+
+---
+
+## Phase 3: Memory Leaks (2-3 hours) 🔧 **IMPORTANT**
+
+**Prevents performance degradation:**
+
+- [ ] Remove dynamic import memory leak (5 min)
+- [ ] Fix filter listeners leak (15 min)
+- [ ] Fix budget form leak (10 min)
+- [ ] Fix goals form leak (10 min)
+- [ ] Fix settings listeners leak (15 min)
+- [ ] Fix accounts form leak (10 min)
+- [ ] Fix swipe listeners leak (15 min)
+- [ ] Fix other minor leaks (30 min)
+
+**Total**: 2 hours
+
+---
+
+## Phase 4: UX Improvements (1 hour) ✨ **NICE TO HAVE**
+
+**Better user experience:**
+
+- [ ] Fix goal notification spam (20 min)
+- [ ] Fix inline onclick handler (5 min)
+- [ ] Add default date to form (5 min)
+- [ ] Improve error messaging (30 min)
+
+**Total**: 1 hour
+
+---
+
+## Phase 5: Polish (1-2 hours) 🎨 **OPTIONAL**
+
+**Code quality improvements:**
+
+- [ ] Fix loose equality issues (15 min)
+- [ ] Add try-catch blocks (30 min)
+- [ ] Add defensive coding (30 min)
+- [ ] Clean up code style (30 min)
+
+**Total**: 1.5 hours
+
+---
+
+# 📊 ESTIMATED TIMELINE
+
+| Phase | Priority | Time | Status |
+|-------|----------|------|--------|
+| **Phase 1: Critical** | 🔥 Must Do | 1 hour | ⏳ Pending |
+| **Phase 2: Data Integrity** | ⚠️ High | 30 min | ⏳ Pending |
+| **Phase 3: Memory Leaks** | 🔧 Important | 2 hours | ⏳ Pending |
+| **Phase 4: UX** | ✨ Nice | 1 hour | ⏳ Pending |
+| **Phase 5: Polish** | 🎨 Optional | 1.5 hours | ⏳ Pending |
+| **TOTAL** | | **6 hours** | |
+
+**Minimum for Production**: Phases 1 + 2 = **1.5 hours**
+**Recommended**: Phases 1 + 2 + 3 = **3.5 hours**
+**Complete**: All phases = **6 hours**
+
+---
+
+# 💡 RECOMMENDATIONS
+
+## **Option A: Quick Deploy** (1.5 hours)
+Fix only Critical + Data Integrity issues
+- ✅ App won't crash
+- ✅ Data stays accurate
+- ⚠️ Performance may degrade with heavy use
+- ⚠️ Some UX issues remain
+
+**Best for**: Getting to production quickly
+
+---
+
+## **Option B: Solid Production** (3.5 hours) ⭐ **RECOMMENDED**
+Fix Critical + Data Integrity + Memory Leaks
+- ✅ App won't crash
+- ✅ Data stays accurate
+- ✅ Performance stable long-term
+- ⚠️ Minor UX issues remain
+
+**Best for**: Professional production deployment
+
+---
+
+## **Option C: Perfect Quality** (6 hours)
+Fix everything
+- ✅ No crashes
+- ✅ Perfect data integrity
+- ✅ Zero memory leaks
+- ✅ Great UX
+- ✅ Clean code
+
+**Best for**: Premium quality standards
+
+---
+
+# 🚀 NEXT STEPS
+
+1. **Choose a fix strategy** (A, B, or C)
+2. **Create feature branch**: `git checkout -b fix/code-quality`
+3. **Fix issues systematically** (use checklists above)
+4. **Test thoroughly** after each phase
+5. **Commit with clear messages**
+6. **Create PR for review**
+7. **Deploy when ready**
+
+---
+
+# 📝 TESTING CHECKLIST
+
+After fixing issues, test:
+
+**Critical Functionality:**
+- [ ] Edit transaction from dashboard
+- [ ] Edit transaction from transactions page
+- [ ] Delete transaction (verify balance updates)
+- [ ] Import CSV file
+- [ ] Add transaction from any page
+- [ ] Modal opens/closes properly
+
+**Memory Leak Verification:**
+- [ ] Switch between pages 20+ times
+- [ ] Check Chrome DevTools Memory tab
+- [ ] Verify no growing event listener count
+- [ ] Test all form submissions multiple times
+
+**User Experience:**
+- [ ] Create/edit/delete budget
+- [ ] Create/edit/delete goal
+- [ ] Contribute to goal (check notifications)
+- [ ] Filter transactions
+- [ ] Export CSV/JSON/PDF
+- [ ] Switch themes
+
+---
+
+# 📚 RESOURCES
+
+**Tools for Testing:**
+- Chrome DevTools → Memory → Take Heap Snapshot
+- Chrome DevTools → Performance → Record session
+- Console → Monitor event listeners
+- Chrome DevTools → Coverage → Check unused code
+
+**Memory Leak Detection:**
 ```javascript
-import { checkGoalMilestones } from './notifications.js';
-
-// After updateGoalAmount success:
-checkGoalMilestones();
-```
-
-**In `transactions.js`** - After adding transaction:
-```javascript
-import { checkBudgetWarnings, checkUnusualSpending } from './notifications.js';
-
-// After transaction submit success:
-checkBudgetWarnings();
-checkUnusualSpending();
-```
-
-**In `budgets.js`** - When viewing budgets:
-```javascript
-import { checkBudgetWarnings } from './notifications.js';
-
-// At end of renderBudgets:
-checkBudgetWarnings();
+// Run in console to check listener count
+getEventListeners(document.getElementById('element-id'))
 ```
 
 ---
 
-## Testing Checklist
-
-- [ ] Test goal milestone notifications (50%, 75%, 100%)
-- [ ] Test budget warnings (80%, 100%, 110%)
-- [ ] Test unusual spending detection
-- [ ] Verify notification auto-dismiss after 5 seconds
-- [ ] Test manual close button
-- [ ] Test multiple notifications stacking
-- [ ] Verify notification animations
-
----
-
-# 5. 🎨 Theme Customization (1-2 hours)
-
-**Status**: ⏳ Not started
-**Priority**: Medium - UX improvement
-
-## Overview
-
-Add light/dark mode toggle and theme customization.
-
----
-
-## Step 1: Create `theme.js` (1 hour)
-
-**Create**: `theme.js` (new file)
-
-```javascript
-/**
- * Theme management
- */
-
-const THEMES = {
-    dark: {
-        '--bg-primary': '#0f0f1e',
-        '--bg-secondary': '#1a1a2e',
-        '--bg-card': '#16213e',
-        '--text-primary': '#e0e0e0',
-        '--text-secondary': '#9ca3af',
-        '--accent-primary': '#8b5cf6',
-        '--accent-secondary': '#ec4899',
-        '--border-color': '#374151',
-        '--success': '#22c55e',
-        '--danger': '#ef4444',
-        '--warning': '#f59e0b'
-    },
-    light: {
-        '--bg-primary': '#f8f9fa',
-        '--bg-secondary': '#ffffff',
-        '--bg-card': '#ffffff',
-        '--text-primary': '#1f2937',
-        '--text-secondary': '#6b7280',
-        '--accent-primary': '#8b5cf6',
-        '--accent-secondary': '#ec4899',
-        '--border-color': '#e5e7eb',
-        '--success': '#16a34a',
-        '--danger': '#dc2626',
-        '--warning': '#ea580c'
-    },
-    ocean: {
-        '--bg-primary': '#001f3f',
-        '--bg-secondary': '#003459',
-        '--bg-card': '#004876',
-        '--text-primary': '#e0f2fe',
-        '--text-secondary': '#bae6fd',
-        '--accent-primary': '#06b6d4',
-        '--accent-secondary': '#0891b2',
-        '--border-color': '#075985',
-        '--success': '#22c55e',
-        '--danger': '#ef4444',
-        '--warning': '#f59e0b'
-    },
-    sunset: {
-        '--bg-primary': '#2d1b1e',
-        '--bg-secondary': '#3d2329',
-        '--bg-card': '#4d2b34',
-        '--text-primary': '#fce7f3',
-        '--text-secondary': '#f9a8d4',
-        '--accent-primary': '#f97316',
-        '--accent-secondary': '#ec4899',
-        '--border-color': '#5d3340',
-        '--success': '#22c55e',
-        '--danger': '#ef4444',
-        '--warning': '#fbbf24'
-    }
-};
-
-/**
- * Gets current theme from localStorage
- */
-export const getCurrentTheme = () => {
-    return localStorage.getItem('financeflow-theme') || 'dark';
-};
-
-/**
- * Applies a theme
- */
-export const applyTheme = (themeName) => {
-    const theme = THEMES[themeName];
-    if (!theme) return;
-
-    const root = document.documentElement;
-    Object.entries(theme).forEach(([property, value]) => {
-        root.style.setProperty(property, value);
-    });
-
-    localStorage.setItem('financeflow-theme', themeName);
-};
-
-/**
- * Initializes theme system
- */
-export const initTheme = () => {
-    const savedTheme = getCurrentTheme();
-    applyTheme(savedTheme);
-
-    // Update theme selector if it exists
-    const themeSelect = document.getElementById('theme-selector');
-    if (themeSelect) {
-        themeSelect.value = savedTheme;
-    }
-};
-
-/**
- * Renders theme selector UI
- */
-export const renderThemeSelector = () => {
-    return `
-        <div class="theme-selector-container">
-            <label for="theme-selector">
-                <i class="fa-solid fa-palette"></i> Theme
-            </label>
-            <select id="theme-selector" class="theme-selector">
-                <option value="dark">Dark (Default)</option>
-                <option value="light">Light</option>
-                <option value="ocean">Ocean Blue</option>
-                <option value="sunset">Sunset Pink</option>
-            </select>
-        </div>
-    `;
-};
-
-/**
- * Attaches theme change listener
- */
-export const attachThemeListener = () => {
-    const themeSelect = document.getElementById('theme-selector');
-    if (themeSelect) {
-        themeSelect.addEventListener('change', (e) => {
-            applyTheme(e.target.value);
-        });
-    }
-};
-```
-
----
-
-## Step 2: Add Theme Selector to Settings (30 minutes)
-
-Create a settings section or add to dashboard:
-
-**In `dashboard.js` or create new `settings.js`**:
-
-```javascript
-import { renderThemeSelector, attachThemeListener } from './theme.js';
-
-export const renderSettings = () => {
-    const contentArea = document.getElementById('content-area');
-
-    contentArea.innerHTML = `
-        <div class="card">
-            <h2>Settings</h2>
-
-            <div class="settings-section">
-                <h3>Appearance</h3>
-                ${renderThemeSelector()}
-            </div>
-
-            <div class="settings-section">
-                <h3>Preferences</h3>
-                <label>
-                    <input type="checkbox" id="notifications-enabled" checked>
-                    Enable notifications
-                </label>
-            </div>
-        </div>
-    `;
-
-    attachThemeListener();
-};
-```
-
----
-
-## Step 3: Initialize Theme on App Load (15 minutes)
-
-**In `main.js`**:
-
-```javascript
-import { initTheme } from './theme.js';
-
-// At the top of the init function:
-initTheme();
-```
-
----
-
-## Step 4: Add Theme Styles to `style.css` (15 minutes)
-
-```css
-/* ========================================
-   THEME SELECTOR
-   ======================================== */
-
-.theme-selector-container {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: var(--bg-card);
-    border-radius: var(--radius-md);
-    margin-bottom: 1rem;
-}
-
-.theme-selector-container label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.theme-selector {
-    flex: 1;
-    max-width: 300px;
-    padding: 0.5rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    font-size: 1rem;
-}
-
-.settings-section {
-    margin-bottom: 2rem;
-}
-
-.settings-section h3 {
-    color: var(--accent-primary);
-    margin-bottom: 1rem;
-}
-```
-
----
-
-## Testing Checklist
-
-- [ ] Test dark theme (default)
-- [ ] Test light theme
-- [ ] Test ocean theme
-- [ ] Test sunset theme
-- [ ] Verify theme persists on page reload
-- [ ] Test theme switching while using app
-- [ ] Verify all UI elements adapt to themes
-
----
-
-# 📋 PHASE 4 IMPLEMENTATION CHECKLIST
-
-## Feature 1: Budget Tracking
-- [ ] Create budgets table in Supabase
-- [ ] Create budgets.js (2 hours)
-- [ ] Add budget modal to index.html
-- [ ] Add budget styles to style.css
-- [ ] Update state.js
-- [ ] Update main.js navigation
-- [ ] Update dataLoader.js
-- [ ] Test all budget functionality
-
-## Feature 2: Analytics Dashboard
-- [ ] Add Chart.js library
-- [ ] Create analytics.js (2-3 hours)
-- [ ] Add analytics styles
-- [ ] Update navigation
-- [ ] Test all charts and calculations
-
-## Feature 3: Export & Reports
-- [ ] Create export.js (1.5 hours)
-- [ ] Add export buttons to UI
-- [ ] Test CSV export
-- [ ] Test Excel export
-- [ ] Test PDF generation
-
-## Feature 4: Smart Notifications
-- [ ] Create notifications.js (2 hours)
-- [ ] Add notification styles
-- [ ] Integrate with goals, budgets, transactions
-- [ ] Test all notification types
-
-## Feature 5: Theme Customization
-- [ ] Create theme.js (1 hour)
-- [ ] Add theme selector UI
-- [ ] Initialize theme on load
-- [ ] Add theme styles
-- [ ] Test all 4 themes
-
----
-
-## 🎯 RECOMMENDED IMPLEMENTATION ORDER
-
-1. **Theme Customization** (1-2 hours) - Quick win, immediate UX improvement
-2. **Budget Tracking** (4-6 hours) - Core feature, completes financial management
-3. **Analytics Dashboard** (3-4 hours) - High value, users love charts
-4. **Smart Notifications** (3-4 hours) - Engagement booster
-5. **Export & Reports** (2-3 hours) - Professional touch
-
-**Total Time**: 13-19 hours
-**Impact**: S-tier app with all premium features
-
----
-
-## 💡 COMMIT MESSAGE TEMPLATES
-
-### After Budget Tracking:
-```
-feat: implement complete budget tracking system
-
-- Create budgets table with RLS policies
-- Full CRUD operations for monthly budgets
-- Real-time spending vs budget calculations
-- Visual progress bars with warning states (80%, 100%)
-- Category-based budget tracking
-- Edit and delete functionality
-
-Impact: Completes core financial management features
-Time: 4-6 hours
-Grade: A++ → S-tier
-```
-
-### After Analytics Dashboard:
-```
-feat: add comprehensive analytics dashboard
-
-- Chart.js integration for data visualization
-- Monthly income vs expense bar charts
-- Category spending pie/donut charts
-- 6-month spending trend line charts
-- Summary cards with key metrics
-- Top 5 spending categories list
-
-Impact: Premium visual insights for financial data
-Time: 3-4 hours
-Features: Complete data analytics
-```
-
-### After Export & Reports:
-```
-feat: implement export and reporting functionality
-
-- CSV export for all transactions
-- Excel-compatible export (.xls)
-- PDF report generation with charts
-- Custom date range filtering
-- Monthly summary reports
-- Top categories breakdown
-
-Impact: Professional reporting capabilities
-Time: 2-3 hours
-```
-
-### After Smart Notifications:
-```
-feat: add smart notification system
-
-- Goal milestone alerts (50%, 75%, 100%)
-- Budget warnings (80%, 100% thresholds)
-- Unusual spending pattern detection
-- In-app toast notifications
-- Auto-dismiss with manual close
-- Visual notification types (success, warning, danger, info)
-
-Impact: Increased user engagement and awareness
-Time: 3-4 hours
-```
-
-### After Theme Customization:
-```
-feat: implement theme customization system
-
-- 4 themes: Dark, Light, Ocean, Sunset
-- Theme persistence in localStorage
-- Settings UI with theme selector
-- CSS custom properties for easy theming
-- Smooth theme transitions
-- All UI components theme-aware
-
-Impact: Enhanced UX with personalization
-Time: 1-2 hours
-```
-
----
-
-**Status**: Ready for Phase 4 Implementation ✅
-**Next Steps**: Choose feature to implement first
-**Recommendation**: Start with Theme Customization (quick win) → Budget Tracking (core feature) → Analytics (high value)
+**Status**: Ready for bug fixes
+**Current Grade**: A (24 issues identified)
+**Target Grade**: S-Tier (after fixes)
+**Recommendation**: Fix Phases 1-3 (3.5 hours) before deployment
