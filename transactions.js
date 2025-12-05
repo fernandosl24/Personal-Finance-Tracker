@@ -446,7 +446,7 @@ export const filterTransactions = () => {
         }
 
         // 4. Account
-        if (account !== 'all' && t.account_id != account) { // Loose equality for string/number match
+        if (account !== 'all' && t.account_id !== account) { // Issue #19 fix: Strict equality
             return false;
         }
 

@@ -45,7 +45,10 @@ export const handleSignUp = async (e) => {
         }
 
         alert('Sign up successful! Please check your email to verify your account.');
-        window.navigateTo('login');
+        // Issue #21 fix: Check if navigateTo exists before calling
+        if (typeof window.navigateTo === 'function') {
+            window.navigateTo('login');
+        }
     } catch (error) {
         alert('Error signing up: ' + error.message);
     }
@@ -71,7 +74,10 @@ export const handleLogin = async (e) => {
         if (error) throw error;
 
         // State will be updated by onAuthStateChange listener in app.js
-        window.navigateTo('dashboard');
+        // Issue #21 fix: Check if navigateTo exists before calling
+        if (typeof window.navigateTo === 'function') {
+            window.navigateTo('dashboard');
+        }
     } catch (error) {
         alert('Error logging in: ' + error.message);
     }
@@ -84,7 +90,10 @@ export const handleLogout = async () => {
     try {
         const { error } = await supabaseClient.auth.signOut();
         if (error) throw error;
-        window.navigateTo('login');
+        // Issue #21 fix: Check if navigateTo exists before calling
+        if (typeof window.navigateTo === 'function') {
+            window.navigateTo('login');
+        }
     } catch (error) {
         alert('Error logging out: ' + error.message);
     }

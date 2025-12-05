@@ -101,11 +101,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tIdEl = document.getElementById('t-id');
             const tSubmitBtn = document.getElementById('t-submit-btn');
             const deleteBtn = document.getElementById('t-delete-btn');
+            const tDateEl = document.getElementById('t-date');
             const modal = document.getElementById('transaction-modal');
 
             if (tIdEl) tIdEl.value = '';
             if (tSubmitBtn) tSubmitBtn.textContent = 'Add Transaction';
             if (deleteBtn) deleteBtn.style.display = 'none';
+
+            // Issue #22 fix: Set default date to today
+            if (tDateEl) {
+                const today = new Date().toISOString().split('T')[0];
+                tDateEl.value = today;
+            }
+
             if (modal) modal.style.display = 'flex';
         });
     }

@@ -90,41 +90,71 @@ export const checkBudgetWarnings = () => {
     });
 };
 
+// Track shown milestones in localStorage (Issue #15 fix)
+const SHOWN_MILESTONES_KEY = 'financeflow-shown-milestones';
+
+const getShownMilestones = () => {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(SHOWN_MILESTONES_KEY) || '[]'));
+    } catch {
+        return new Set();
+    }
+};
+
+const saveShownMilestone = (goalId, milestone) => {
+    const shown = getShownMilestones();
+    shown.add(`${goalId}-${milestone}`);
+    localStorage.setItem(SHOWN_MILESTONES_KEY, JSON.stringify([...shown]));
+};
+
+/**
+ * Clears milestone tracking (useful for testing)
+ */
+export const clearMilestoneTracking = () => {
+    localStorage.removeItem(SHOWN_MILESTONES_KEY);
+};
+
 /**
  * Checks for goal milestones
  */
 export const checkGoalMilestones = () => {
     if (!state.goals || state.goals.length === 0) return;
 
+    const shown = getShownMilestones();
+
     state.goals.forEach(goal => {
         const percentage = (goal.current_amount / goal.target_amount) * 100;
 
-        // Celebrate milestones
-        if (percentage >= 100) {
-            showNotification(
-                `🎉 Congratulations! You've reached your "${goal.name}" goal of ${formatCurrency(goal.target_amount)}!`,
-                'success',
-                8000
-            );
-        } else if (percentage >= 75 && percentage < 76) {
-            showNotification(
-                `🎯 Great progress! You're 75% of the way to your "${goal.name}" goal!`,
-                'success',
-                6000
-            );
-        } else if (percentage >= 50 && percentage < 51) {
-            showNotification(
-                `🎯 Halfway there! You've reached 50% of your "${goal.name}" goal!`,
-                'success',
-                6000
-            );
-        } else if (percentage >= 25 && percentage < 26) {
-            showNotification(
-                `🎯 Good start! You're 25% of the way to your "${goal.name}" goal!`,
-                'info',
-                5000
-            );
-        }
+        // Check 25%, 50%, 75%, 100% milestones
+        [25, 50, 75, 100].forEach(milestone => {
+            const milestoneKey = `${goal.id}-${milestone}`;
+
+            // Show notification if just hit milestone and haven't shown before
+            if (percentage >= milestone && percentage < milestone + 5 && !shown.has(milestoneKey)) {
+                let message, type, duration;
+
+                if (milestone === 100) {
+                    message = `🎉 Congratulations! You've reached your "${goal.name}" goal of ${formatCurrency(goal.target_amount)}!`;
+                    type = 'success';
+                    duration = 8000;
+                } else if (milestone === 75) {
+                    message = `🎯 Great progress! You're 75% of the way to your "${goal.name}" goal!`;
+                    type = 'success';
+                    duration = 6000;
+                } else if (milestone === 50) {
+                    message = `🎯 Halfway there! You've reached 50% of your "${goal.name}" goal!`;
+                    type = 'success';
+                    duration = 6000;
+                } else if (milestone === 25) {
+                    message = `🎯 Good start! You're 25% of the way to your "${goal.name}" goal!`;
+                    type = 'info';
+                    duration = 5000;
+                }
+
+                showNotification(message, type, duration);
+                saveShownMilestone(goal.id, milestone);
+            }
+        });
     });
 };
 
