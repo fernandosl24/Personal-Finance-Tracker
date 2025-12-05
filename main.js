@@ -219,13 +219,14 @@ const navigateTo = (viewId) => {
     if (viewId === 'goals') renderGoals();
     if (viewId === 'budgets') renderBudgets();
     if (viewId === 'audit-results') {
-        const savedResults = loadSavedAuditResults();
-        if (savedResults && savedResults.updates) {
-            renderAuditResultsPage(savedResults.updates);
-        } else {
-            navigateTo('settings');
-            alert('No audit results found. Please run an audit first.');
-        }
+        loadSavedAuditResults().then(savedResults => {
+            if (savedResults && savedResults.updates) {
+                renderAuditResultsPage(savedResults.updates, savedResults);
+            } else {
+                navigateTo('settings');
+                alert('No audit results found. Please run an audit first.');
+            }
+        });
     }
     // if (viewId === 'categories') renderCategories(); // Categories managed in settings
 };

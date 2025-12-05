@@ -4,32 +4,127 @@ import { getRandomColor } from './utils.js';
 import { loadData } from './dataLoader.js';
 
 /**
- * Saves audit results to localStorage
+ * Saves audit results to database
  * @param {Array} updates - List of suggested updates
+ * @returns {Promise<string>} - Audit ID
  */
-export const saveAuditResults = (updates) => {
-    const auditData = {
-        timestamp: new Date().toISOString(),
-        totalSuggestions: updates.length,
-        updates: updates
-    };
-    localStorage.setItem('financeflow-audit-results', JSON.stringify(auditData));
+export const saveAuditResults = async (updates) => {
+    try {
+        const { data, error } = await supabaseClient
+            .from('audit_results')
+            .insert([{
+                user_id: state.user.id,
+                total_suggestions: updates.length,
+                status: 'pending',
+                updates: updates
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Store current audit ID in sessionStorage for quick access
+        sessionStorage.setItem('current-audit-id', data.id);
+
+        return data.id;
+    } catch (error) {
+        console.error('Error saving audit results:', error);
+        throw error;
+    }
 };
 
 /**
- * Loads saved audit results from localStorage
- * @returns {Object|null} Saved audit data or null
+ * Loads the most recent pending audit results from database
+ * @returns {Promise<Object|null>} Saved audit data or null
  */
-export const loadSavedAuditResults = () => {
-    const saved = localStorage.getItem('financeflow-audit-results');
-    return saved ? JSON.parse(saved) : null;
+export const loadSavedAuditResults = async () => {
+    try {
+        // First try to get current audit from sessionStorage
+        const currentAuditId = sessionStorage.getItem('current-audit-id');
+
+        if (currentAuditId) {
+            const { data, error } = await supabaseClient
+                .from('audit_results')
+                .select('*')
+                .eq('id', currentAuditId)
+                .eq('user_id', state.user.id)
+                .single();
+
+            if (!error && data) {
+                return {
+                    id: data.id,
+                    timestamp: data.created_at,
+                    totalSuggestions: data.total_suggestions,
+                    status: data.status,
+                    updates: data.updates
+                };
+            }
+        }
+
+        // Fallback: Get most recent pending audit
+        const { data, error } = await supabaseClient
+            .from('audit_results')
+            .select('*')
+            .eq('user_id', state.user.id)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') return null; // No results found
+            throw error;
+        }
+
+        if (data) {
+            sessionStorage.setItem('current-audit-id', data.id);
+            return {
+                id: data.id,
+                timestamp: data.created_at,
+                totalSuggestions: data.total_suggestions,
+                status: data.status,
+                updates: data.updates
+            };
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error loading audit results:', error);
+        return null;
+    }
 };
 
 /**
- * Clears saved audit results
+ * Marks audit results as applied
+ * @param {string} auditId - Audit ID
+ * @param {number} appliedCount - Number of changes applied
  */
-export const clearAuditResults = () => {
-    localStorage.removeItem('financeflow-audit-results');
+export const markAuditAsApplied = async (auditId, appliedCount) => {
+    try {
+        const { error } = await supabaseClient
+            .from('audit_results')
+            .update({
+                status: 'applied',
+                applied_at: new Date().toISOString(),
+                applied_count: appliedCount
+            })
+            .eq('id', auditId);
+
+        if (error) throw error;
+
+        // Clear session storage
+        sessionStorage.removeItem('current-audit-id');
+    } catch (error) {
+        console.error('Error marking audit as applied:', error);
+        throw error;
+    }
+};
+
+/**
+ * Clears current audit from session
+ */
+export const clearCurrentAudit = () => {
+    sessionStorage.removeItem('current-audit-id');
 };
 
 /**
@@ -42,11 +137,12 @@ export const navigateToAuditResults = () => {
 /**
  * Renders the Audit Results page
  * @param {Array} updates - List of suggested updates
+ * @param {Object} auditData - Audit metadata (id, timestamp, etc.)
  */
-export const renderAuditResultsPage = (updates) => {
+export const renderAuditResultsPage = (updates, auditData = null) => {
     const contentArea = document.getElementById('content-area');
-    const savedData = loadSavedAuditResults();
-    const timestamp = savedData ? new Date(savedData.timestamp).toLocaleString() : 'Unknown';
+    const timestamp = auditData?.timestamp ? new Date(auditData.timestamp).toLocaleString() : 'Unknown';
+    const auditId = auditData?.id || sessionStorage.getItem('current-audit-id');
 
     // Get all available categories for dropdowns
     const allCategories = state.categories.map(c => c.name).sort();
@@ -332,8 +428,12 @@ const applySelectedChanges = async (updates) => {
 
         alert(`Successfully applied ${changes.length} changes!`);
 
-        // Clear saved results and reload data
-        clearAuditResults();
+        // Mark audit as applied in database
+        const auditId = sessionStorage.getItem('current-audit-id');
+        if (auditId) {
+            await markAuditAsApplied(auditId, changes.length);
+        }
+
         await loadData();
 
         // Navigate back to settings
