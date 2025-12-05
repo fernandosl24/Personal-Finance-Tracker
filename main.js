@@ -8,7 +8,8 @@ import { renderAccounts, handleAccountSubmit, deleteAccount } from './accounts.j
 import { handleCategorySubmit, deleteCategory, editCategory, syncCategories, optimizeCategories } from './categories.js';
 import { renderGoals } from './goals.js';
 import { renderBudgets } from './budgets.js';
-import { startAIAudit, processSmartImport, showAuditResults, applyAuditChanges } from './ai.js';
+import { startAIAudit, processSmartImport } from './ai.js';
+import { renderAuditResultsPage, loadSavedAuditResults } from './audit-results.js';
 import { formatCurrency } from './utils.js';
 import { initTheme, renderThemeSelector, attachThemeListener } from './theme.js';
 
@@ -217,6 +218,15 @@ const navigateTo = (viewId) => {
     if (viewId === 'accounts') renderAccounts();
     if (viewId === 'goals') renderGoals();
     if (viewId === 'budgets') renderBudgets();
+    if (viewId === 'audit-results') {
+        const savedResults = loadSavedAuditResults();
+        if (savedResults && savedResults.updates) {
+            renderAuditResultsPage(savedResults.updates);
+        } else {
+            navigateTo('settings');
+            alert('No audit results found. Please run an audit first.');
+        }
+    }
     // if (viewId === 'categories') renderCategories(); // Categories managed in settings
 };
 

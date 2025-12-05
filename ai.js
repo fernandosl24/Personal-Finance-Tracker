@@ -2,6 +2,7 @@ import { supabaseClient } from './supabaseClient.js';
 import { state } from './state.js';
 import { getRandomColor } from './utils.js';
 import { loadData } from './dataLoader.js';
+import { saveAuditResults, navigateToAuditResults } from './audit-results.js';
 
 /**
  * Starts the AI Audit process for transactions.
@@ -66,7 +67,8 @@ export const startAIAudit = async () => {
         if (updates.length === 0) {
             alert('AI found no issues or improvements!');
         } else {
-            showAuditResults(updates);
+            saveAuditResults(updates);
+            navigateToAuditResults();
         }
 
     } catch (error) {
@@ -147,164 +149,6 @@ export const analyzeTransactions = async (transactions, onProgress) => {
     return updates;
 };
 
-/**
- * Shows the audit results in a modal.
- * @param {Array} updates - List of suggested updates.
- */
-export const showAuditResults = (updates) => {
-    const modal = document.createElement('div');
-    modal.id = 'audit-results-modal';
-    modal.className = 'modal';
-
-    // Get all available categories for the dropdown
-    const allCategories = state.categories.map(c => c.name).sort();
-
-    const rows = updates.map(u => {
-        const tx = state.transactions.find(t => t.id === u.id);
-        if (!tx) return '';
-
-        // Build the "New" column - dropdown for category, text for type
-        let newValueHTML;
-        if (u.field === 'category') {
-            // Create dropdown with all categories, including the suggested one
-            const categoryOptions = [...new Set([...allCategories, u.new_value])].sort();
-            newValueHTML = `
-                <select class="audit-new-value" data-id="${u.id}" data-field="${u.field}" style="
-                    width: 100%;
-                    padding: 0.4rem;
-                    background-color: rgba(255, 255, 255, 0.05);
-                    border: 1px solid var(--border-color);
-                    border-radius: 4px;
-                    color: var(--success);
-                    font-weight: 500;
-                    font-family: inherit;
-                ">
-                    ${categoryOptions.map(cat => `
-                        <option value="${cat}" ${cat === u.new_value ? 'selected' : ''}>${cat}</option>
-                    `).join('')}
-                </select>
-            `;
-        } else {
-            // For type changes, just show as text
-            newValueHTML = `<span style="color: var(--success); font-weight: 500;">${u.new_value}</span>`;
-        }
-
-        return `
-            <tr>
-                <td>${tx.description}</td>
-                <td>${u.field}</td>
-                <td style="color: var(--danger); text-decoration: line-through;">${u.field === 'category' ? tx.category : tx.type}</td>
-                <td>${newValueHTML}</td>
-                <td><small>${u.reason}</small></td>
-                <td style="text-align: center;">
-                    <input type="checkbox" class="audit-check" checked data-id="${u.id}" data-field="${u.field}">
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    const modalId = 'audit-results-modal';
-
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
-            <span class="close-modal" id="close-audit-modal">&times;</span>
-            <h2>Audit Results</h2>
-            <p>Found ${updates.length} suggested improvements. You can modify the suggested categories before applying.</p>
-            <div style="max-height: 60vh; overflow-y: auto; margin-bottom: 1rem; border: 1px solid var(--border-color); border-radius: 8px;">
-                <table class="transaction-table">
-                    <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 10;">
-                        <tr>
-                            <th>Transaction</th>
-                            <th>Field</th>
-                            <th>Old</th>
-                            <th>New</th>
-                            <th>Reason</th>
-                            <th>Apply</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-            <button class="btn btn-primary btn-block" id="apply-audit-btn">Apply Selected Changes</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    modal.style.display = 'flex';
-
-    // Attach listeners
-    document.getElementById('close-audit-modal').onclick = () => document.getElementById(modalId).remove();
-    document.getElementById('apply-audit-btn').onclick = applyAuditChanges;
-};
-
-/**
- * Applies the selected audit changes.
- */
-export const applyAuditChanges = async () => {
-    const checks = document.querySelectorAll('.audit-check:checked');
-    const changes = Array.from(checks).map(c => {
-        const id = c.dataset.id;
-        const field = c.dataset.field;
-
-        // Get the value from the dropdown if it's a category change
-        let value;
-        if (field === 'category') {
-            const dropdown = document.querySelector(`.audit-new-value[data-id="${id}"][data-field="${field}"]`);
-            value = dropdown ? dropdown.value : '';
-        } else {
-            // For type changes, get from the row text
-            const row = c.closest('tr');
-            const newCell = row.cells[3]; // "New" column
-            value = newCell.textContent.trim();
-        }
-
-        return { id, field, value };
-    });
-
-    if (changes.length === 0) return;
-
-    const btn = document.querySelector('#audit-results-modal .btn-primary');
-    btn.disabled = true;
-    btn.textContent = 'Applying...';
-
-    try {
-        // 1. Check for new categories to create
-        const newCategories = new Set();
-        changes.forEach(c => {
-            if (c.field === 'category') {
-                const exists = state.categories.some(cat => cat.name.toLowerCase() === c.value.toLowerCase());
-                if (!exists) newCategories.add(c.value);
-            }
-        });
-
-        for (const catName of newCategories) {
-            await supabaseClient.from('categories').insert([{
-                user_id: state.user.id,
-                name: catName,
-                type: 'expense',
-                color_code: getRandomColor()
-            }]);
-        }
-
-        // 2. Apply updates
-        for (const change of changes) {
-            const update = {};
-            update[change.field] = change.value;
-
-            await supabaseClient
-                .from('transactions')
-                .update(update)
-                .eq('id', change.id);
-        }
-
-        alert(`Applied ${changes.length} changes!`);
-        document.getElementById('audit-results-modal').remove();
-        loadData();
-
-    } catch (error) {
-        console.error('Apply Error:', error);
-        alert('Error applying changes: ' + error.message);
-    }
-};
 
 /**
  * Processes the Smart Import (Text/Image) using AI.
