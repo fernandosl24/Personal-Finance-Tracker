@@ -517,7 +517,7 @@ body {
 }
 
 .tx-content {
-    background-color: var(--card-bg);
+    background-color: var(--bg-secondary);
     position: relative;
     z-index: 2;
     display: flex;
@@ -672,7 +672,7 @@ body {
 }
 
 .tx-content {
-    background-color: var(--bg-card);
+    background-color: var(--bg-secondary);
     position: relative;
     z-index: 2;
     display: flex;
