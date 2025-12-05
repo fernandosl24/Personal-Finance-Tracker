@@ -1,0 +1,67 @@
+/* Light Theme Overrides */
+body.theme-light {
+
+    /* Fix hover states */
+    .nav-links a:hover,
+    .nav-links li.active a {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Fix form inputs */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        background-color: rgba(0, 0, 0, 0.03);
+        color: var(--text-primary);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Fix transaction hover */
+    .transaction-item:hover .tx-content {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+
+    /* Fix badges */
+    .badge {
+        background-color: rgba(0, 0, 0, 0.1);
+        color: var(--text-primary);
+    }
+
+    /* Fix borders */
+    .goal-card,
+    .budget-card,
+    .summary-card,
+    .chart-card {
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    /* Fix progress bars */
+    .progress-bar {
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Fix table styling */
+    .transaction-table th {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+    }
+
+    .transaction-table tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+}
+
+/* Ocean Theme Overrides */
+body.theme-ocean {
+    /* Ocean theme works well with default styles */
+}
+
+/* Sunset Theme Overrides */
+body.theme-sunset {
+    /* Sunset theme works well with default styles */
+}
