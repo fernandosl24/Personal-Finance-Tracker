@@ -93,17 +93,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Attach Add Transaction Button Listener
+    // Attach Add Transaction Button Listener (Issue #3 fix)
     const addTxBtn = document.getElementById('add-transaction-btn');
     if (addTxBtn) {
         addTxBtn.addEventListener('click', () => {
-            // Reset form for new transaction
-            document.getElementById('t-id').value = '';
-            document.getElementById('t-submit-btn').textContent = 'Add Transaction';
-            // Hide delete button when adding new transaction
+            // Reset form for new transaction with null checks
+            const tIdEl = document.getElementById('t-id');
+            const tSubmitBtn = document.getElementById('t-submit-btn');
             const deleteBtn = document.getElementById('t-delete-btn');
+            const modal = document.getElementById('transaction-modal');
+
+            if (tIdEl) tIdEl.value = '';
+            if (tSubmitBtn) tSubmitBtn.textContent = 'Add Transaction';
             if (deleteBtn) deleteBtn.style.display = 'none';
-            document.getElementById('transaction-modal').style.display = 'flex';
+            if (modal) modal.style.display = 'flex';
         });
     }
 
@@ -111,21 +114,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeTxModal = document.getElementById('close-tx-modal');
     if (closeTxModal) {
         closeTxModal.addEventListener('click', () => {
-            document.getElementById('transaction-modal').style.display = 'none';
+            const modal = document.getElementById('transaction-modal');
+            if (modal) modal.style.display = 'none';
         });
     }
 
-    // Attach Delete Transaction Button Listener (in modal)
+    // Global Transaction Form Submit Listener (Issue #4 fix)
+    const transactionForm = document.getElementById('add-transaction-form');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', handleTransactionSubmit);
+    }
+
+    // Attach Delete Transaction Button Listener (Issue #6 fix - remove dynamic import)
     const deleteTxBtn = document.getElementById('t-delete-btn');
     if (deleteTxBtn) {
-        deleteTxBtn.addEventListener('click', () => {
-            const txId = document.getElementById('t-id').value;
+        deleteTxBtn.addEventListener('click', async () => {
+            const txIdEl = document.getElementById('t-id');
+            const txId = txIdEl ? txIdEl.value : null;
+
             if (txId && confirm('Are you sure you want to delete this transaction?')) {
-                // Import deleteTransaction from transactions.js
-                import('./transactions.js').then(module => {
-                    module.deleteTransaction(txId);
-                    document.getElementById('transaction-modal').style.display = 'none';
-                });
+                await deleteTransaction(txId);  // Use top-level import
+                const modal = document.getElementById('transaction-modal');
+                if (modal) modal.style.display = 'none';
             }
         });
     }
@@ -269,7 +279,7 @@ const renderDashboard = () => {
             <div class="card">
                 <h3>Recent Activity</h3>
                 ${renderTransactionList(state.transactions.slice(0, 5))}
-                <button class="btn btn-sm btn-block" style="margin-top: 1rem;" onclick="navigateTo('transactions')">View All</button>
+                <button class="btn btn-sm btn-block nav-link" data-page="transactions">View All</button>
             </div>
         </div>
     `;
@@ -442,24 +452,38 @@ const renderSettings = () => {
         </div>
     `;
 
-    document.getElementById('save-settings-btn').addEventListener('click', () => {
-        const key = document.getElementById('openai-key').value;
-        if (key) {
-            localStorage.setItem('openai_api_key', key);
-            alert('Settings saved!');
+    // Attach settings listeners (Issue #10 fix - prevent memory leak)
+    const settingsButtons = [
+        {
+            id: 'save-settings-btn', handler: () => {
+                const key = document.getElementById('openai-key').value;
+                if (key) {
+                    localStorage.setItem('openai_api_key', key);
+                    alert('Settings saved!');
+                }
+            }
+        },
+        { id: 'export-json-btn', handler: exportToJSON },
+        { id: 'import-json-btn', handler: importFromJSON },
+        { id: 'export-csv-btn', handler: exportToCSV },
+        { id: 'export-pdf-btn', handler: exportToPDF },
+        { id: 'start-audit-btn', handler: startAIAudit }
+    ];
+
+    settingsButtons.forEach(({ id, handler }) => {
+        const element = document.getElementById(id);
+        if (element) {
+            // Clone element to remove all existing event listeners
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+
+            // Add fresh listener
+            newElement.addEventListener('click', handler);
         }
     });
 
     // Attach theme listener
     attachThemeListener();
-
-    // Attach export/import listeners
-    document.getElementById('export-json-btn').addEventListener('click', exportToJSON);
-    document.getElementById('import-json-btn').addEventListener('click', importFromJSON);
-    document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
-    document.getElementById('export-pdf-btn').addEventListener('click', exportToPDF);
-
-    document.getElementById('start-audit-btn').addEventListener('click', startAIAudit);
 };
 
 const exportToCSV = () => {

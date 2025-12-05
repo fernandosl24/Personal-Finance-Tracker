@@ -110,7 +110,16 @@ export const renderAccounts = () => {
         document.getElementById('account-modal').style.display = 'none';
     });
 
-    document.getElementById('add-account-form').addEventListener('submit', handleAccountSubmit);
+    // Attach form submit listener (Issue #11 fix - prevent memory leak)
+    const accountForm = document.getElementById('add-account-form');
+    if (accountForm) {
+        // Clone form to remove all existing event listeners
+        const newForm = accountForm.cloneNode(true);
+        accountForm.parentNode.replaceChild(newForm, accountForm);
+
+        // Add fresh listener
+        newForm.addEventListener('submit', handleAccountSubmit);
+    }
 
     // Use event delegation for delete buttons to prevent memory leaks
     const accountsGrid = contentArea.querySelector('[style*="grid"]');

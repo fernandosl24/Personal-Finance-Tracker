@@ -59,9 +59,16 @@ export const handleTransactionSubmit = async (e) => {
 
         if (id) {
             // UPDATE existing transaction
-            // 1. Fetch original transaction to revert its impact
-            const originalTransaction = state.transactions.find(t => t.id === id);
-            if (!originalTransaction) throw new Error('Original transaction not found');
+            // 1. Fetch original transaction from database to ensure fresh data (Issue #13 fix)
+            const { data: originalTransaction, error: fetchError } = await supabaseClient
+                .from('transactions')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (fetchError || !originalTransaction) {
+                throw new Error('Original transaction not found');
+            }
 
             // 2. Revert Old Impact
             if (originalTransaction.account_id) {
@@ -147,13 +154,41 @@ export const deleteTransaction = async (id) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return;
 
     try {
+        // 1. Find the transaction to get account info BEFORE deleting
+        const transaction = state.transactions.find(t => t.id === id);
+        if (!transaction) {
+            throw new Error('Transaction not found');
+        }
+
+        // 2. Revert account balance if transaction was linked to an account
+        if (transaction.account_id) {
+            // Calculate the reverse change
+            // If it was income, subtract it (revert the addition)
+            // If it was expense, add it back (revert the subtraction)
+            const revertChange = transaction.type === 'income'
+                ? -transaction.amount  // Remove the income
+                : transaction.amount;   // Add back the expense
+
+            await updateAccountBalance(transaction.account_id, revertChange);
+        }
+
+        // 3. Delete the transaction from database
         const { error } = await supabaseClient
             .from('transactions')
             .delete()
             .eq('id', id);
 
         if (error) throw error;
-        loadData();
+
+        // 4. Reload data to sync state
+        await loadData();
+
+        // 5. Re-render current view if on transactions page
+        if (window.location.hash.includes('transactions')) {
+            renderTransactions();
+        }
+
+        alert('Transaction deleted successfully');
     } catch (error) {
         console.error('Error deleting transaction:', error);
         alert('Error deleting transaction: ' + error.message);
@@ -165,35 +200,63 @@ export const deleteTransaction = async (id) => {
  * @param {string} id - The transaction ID.
  */
 export const editTransaction = (id) => {
+    // 1. Find the transaction in state
+    const t = state.transactions.find(tx => tx.id === id);
+    if (!t) {
+        console.error('Transaction not found:', id);
+        alert('Transaction not found');
+        return;
+    }
+
+    // 2. Get the category select element
+    const categorySelect = document.getElementById('t-category');
+    if (!categorySelect) {
+        console.error('Category select element not found');
+        return;
+    }
+
+    // 3. Populate category options
     categorySelect.innerHTML = state.categories.map(c =>
         `<option value="${c.name}">${c.name}</option>`
     ).join('');
 
-    // Populate account dropdown
+    // 4. Populate account dropdown
     const accountSelect = document.getElementById('t-account');
-    accountSelect.innerHTML = '<option value="">No Account</option>' +
-        state.accounts.map(a =>
-            `<option value="${a.id}">${a.name}</option>`
-        ).join('');
+    if (accountSelect) {
+        accountSelect.innerHTML = '<option value="">No Account</option>' +
+            state.accounts.map(a =>
+                `<option value="${a.id}">${a.name}</option>`
+            ).join('');
+    }
 
-    // Set form values
-    document.getElementById('t-id').value = t.id;
-    document.getElementById('t-type').value = t.type;
-    document.getElementById('t-amount').value = t.amount;
-    document.getElementById('t-category').value = t.category || 'Uncategorized';
-    document.getElementById('t-date').value = t.date;
-    document.getElementById('t-desc').value = t.description || '';
-    document.getElementById('t-notes').value = t.notes || '';
-    document.getElementById('t-account').value = t.account_id || '';
+    // 5. Set form values with null checks
+    const tIdEl = document.getElementById('t-id');
+    const tTypeEl = document.getElementById('t-type');
+    const tAmountEl = document.getElementById('t-amount');
+    const tCategoryEl = document.getElementById('t-category');
+    const tDateEl = document.getElementById('t-date');
+    const tDescEl = document.getElementById('t-desc');
+    const tNotesEl = document.getElementById('t-notes');
+    const tAccountEl = document.getElementById('t-account');
+    const tSubmitBtn = document.getElementById('t-submit-btn');
 
-    document.getElementById('t-submit-btn').textContent = 'Update Transaction';
+    if (tIdEl) tIdEl.value = t.id || '';
+    if (tTypeEl) tTypeEl.value = t.type || 'expense';
+    if (tAmountEl) tAmountEl.value = t.amount || '';
+    if (tCategoryEl) tCategoryEl.value = t.category || 'Uncategorized';
+    if (tDateEl) tDateEl.value = t.date || '';
+    if (tDescEl) tDescEl.value = t.description || '';
+    if (tNotesEl) tNotesEl.value = t.notes || '';
+    if (tAccountEl) tAccountEl.value = t.account_id || '';
+    if (tSubmitBtn) tSubmitBtn.textContent = 'Update Transaction';
 
-    // Show delete button when editing
+    // 6. Show delete button when editing
     const deleteBtn = document.getElementById('t-delete-btn');
     if (deleteBtn) {
         deleteBtn.style.display = 'block';
     }
 
+    // 7. Show modal
     const modal = document.getElementById('transaction-modal');
     if (modal) {
         modal.style.display = 'flex';
@@ -283,8 +346,32 @@ export const renderTransactions = () => {
                 <span class="close-modal" id="close-csv-modal">&times;</span>
                 <h2>Import CSV</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Upload a CSV file with columns: Date, Description, Amount, Type, Category.</p>
+                
+                <!-- Account Selector -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="csv-account-select" style="display: block; margin-bottom: 0.5rem; color: var(--text-primary);">Link to Account (Optional)</label>
+                    <select id="csv-account-select" style="width: 100%; padding: 0.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                        <option value="">No Account Link</option>
+                        ${state.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}
+                    </select>
+                </div>
+
+                <!-- AI Analyze Checkbox -->
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="csv-ai-analyze">
+                        <span style="color: var(--text-primary);">Analyze transactions with AI after import</span>
+                    </label>
+                </div>
+
                 <input type="file" id="csv-file-input" accept=".csv" style="margin-bottom: 1rem;">
                 <button class="btn btn-primary btn-block" id="process-csv-btn">Import</button>
+
+                <!-- Import Log -->
+                <div id="import-log" style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 4px; max-height: 200px; overflow-y: auto; display: none; font-size: 0.9rem; color: var(--text-secondary);">
+                    <strong style="color: var(--text-primary);">Import Log:</strong>
+                    <div id="import-log-content"></div>
+                </div>
             </div>
         </div>
     `;
@@ -295,16 +382,23 @@ export const renderTransactions = () => {
     attachTransactionListeners(container);
     attachSwipeListeners();
 
-    // Attach Filter Listeners with debouncing for search
+    // Attach Filter Listeners with debouncing for search (Issue #7 fix - prevent memory leak)
     const debouncedFilter = debounce(filterTransactions, 300);
     const filterInputs = ['filter-search', 'filter-type', 'filter-category', 'filter-account', 'filter-date-from', 'filter-date-to'];
+
     filterInputs.forEach(id => {
         const element = document.getElementById(id);
-        // Use debouncing for search input, immediate for dropdowns/dates
+        if (!element) return;
+
+        // Clone element to remove all existing event listeners
+        const newElement = element.cloneNode(true);
+        element.parentNode.replaceChild(newElement, element);
+
+        // Add fresh listener
         if (id === 'filter-search') {
-            element.addEventListener('input', debouncedFilter);
+            newElement.addEventListener('input', debouncedFilter);
         } else {
-            element.addEventListener('input', filterTransactions);
+            newElement.addEventListener('input', filterTransactions);
         }
     });
 
@@ -526,7 +620,13 @@ export const attachTransactionListeners = (container) => {
     container.addEventListener('click', clickHandler);
 };
 
+// Track if swipe listeners are already attached (Issue #12 fix - prevent memory leak)
+let swipeListenersAttached = false;
+
 const attachSwipeListeners = () => {
+    // Only attach listeners once
+    if (swipeListenersAttached) return;
+
     const items = document.querySelectorAll('.transaction-item');
     let touchStartX = 0;
     let touchEndX = 0;
@@ -558,6 +658,8 @@ const attachSwipeListeners = () => {
             item.classList.remove('swiped');
         }
     };
+
+    swipeListenersAttached = true;
 };
 
 
@@ -586,9 +688,16 @@ export const processCSVImport = async () => {
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
+            // Show import log
+            if (logDiv) {
+                logDiv.style.display = 'block';
+            }
+
             const text = e.target.result;
             const lines = text.split('\n');
-            logDiv.innerHTML = `Found ${lines.length} lines. Parsing...<br>`;
+            if (logDiv) {
+                logDiv.innerHTML = `<strong style="color: var(--text-primary);">Import Log:</strong><br>Found ${lines.length} lines. Parsing...<br>`;
+            }
 
             const newTransactions = [];
             let importedCount = 0;

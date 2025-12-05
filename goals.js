@@ -252,11 +252,15 @@ export const renderGoals = () => {
         });
     }
 
-    // Attach form submit listener
+    // Attach form submit listener (Issue #9 fix - prevent memory leak)
     const goalForm = document.getElementById('goal-form');
     if (goalForm) {
-        goalForm.removeEventListener('submit', handleGoalSubmit);
-        goalForm.addEventListener('submit', handleGoalSubmit);
+        // Clone form to remove all existing event listeners
+        const newForm = goalForm.cloneNode(true);
+        goalForm.parentNode.replaceChild(newForm, goalForm);
+
+        // Add fresh listener
+        newForm.addEventListener('submit', handleGoalSubmit);
     }
 
     // Close modal button

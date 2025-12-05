@@ -223,11 +223,15 @@ const attachBudgetEventListeners = () => {
         });
     }
 
-    // Form submit listener
+    // Form submit listener (Issue #8 fix - prevent memory leak)
     const budgetForm = document.getElementById('budget-form');
     if (budgetForm) {
-        budgetForm.removeEventListener('submit', handleBudgetSubmit);
-        budgetForm.addEventListener('submit', handleBudgetSubmit);
+        // Clone form to remove all existing event listeners
+        const newForm = budgetForm.cloneNode(true);
+        budgetForm.parentNode.replaceChild(newForm, budgetForm);
+
+        // Add fresh listener
+        newForm.addEventListener('submit', handleBudgetSubmit);
     }
 
     // Close modal listener
