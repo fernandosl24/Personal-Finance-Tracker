@@ -281,19 +281,93 @@ const renderDashboard = () => {
 
 const renderAnalytics = () => {
     const contentArea = document.getElementById('content-area');
+
+    // Calculate summary statistics
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const thisMonthTransactions = state.transactions.filter(t =>
+        new Date(t.date) >= startOfMonth
+    );
+
+    const income = thisMonthTransactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const expenses = thisMonthTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const netSavings = income - expenses;
+    const savingsRate = income > 0 ? (netSavings / income) * 100 : 0;
+
+    // Calculate top spending categories
+    const categorySpending = {};
+    thisMonthTransactions
+        .filter(t => t.type === 'expense')
+        .forEach(t => {
+            categorySpending[t.category] = (categorySpending[t.category] || 0) + t.amount;
+        });
+
+    const topCategories = Object.entries(categorySpending)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
     contentArea.innerHTML = `
-        <div class="dashboard-grid">
-            <div class="card full-width">
-                <h3>Income vs Expense (Last 6 Months)</h3>
-                <canvas id="analyticsTrendChart"></canvas>
+        <div class="analytics-container">
+            <h2>Financial Analytics</h2>
+            
+            <!-- Summary Cards -->
+            <div class="analytics-summary">
+                <div class="summary-card">
+                    <h4>Total Income (This Month)</h4>
+                    <p class="summary-value" style="color: var(--success);">${formatCurrency(income)}</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Total Expenses (This Month)</h4>
+                    <p class="summary-value" style="color: var(--danger);">${formatCurrency(expenses)}</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Net Savings (This Month)</h4>
+                    <p class="summary-value" style="color: ${netSavings >= 0 ? 'var(--success)' : 'var(--danger)'};">${formatCurrency(netSavings)}</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Savings Rate</h4>
+                    <p class="summary-value" style="color: ${savingsRate >= 20 ? 'var(--success)' : 'var(--warning)'};">${savingsRate.toFixed(1)}%</p>
+                </div>
             </div>
-            <div class="card">
-                <h3>Expense Breakdown</h3>
-                <canvas id="analyticsCategoryChart"></canvas>
+            
+            <!-- Charts Row 1 -->
+            <div class="charts-row">
+                <div class="card chart-card">
+                    <h3>Expense Breakdown</h3>
+                    <canvas id="analyticsCategoryChart"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <h3>Daily Spending (This Month)</h3>
+                    <canvas id="analyticsDailyChart"></canvas>
+                </div>
             </div>
+            
+            <!-- Charts Row 2 -->
+            <div class="charts-row">
+                <div class="card chart-card-full">
+                    <h3>Income vs Expense (Last 6 Months)</h3>
+                    <canvas id="analyticsTrendChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Top Spending Categories -->
             <div class="card">
-                <h3>Daily Spending (This Month)</h3>
-                <canvas id="analyticsDailyChart"></canvas>
+                <h3>Top Spending Categories (This Month)</h3>
+                <div id="top-categories-list">
+                    ${topCategories.length > 0 ? topCategories.map(([category, amount], index) => `
+                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                            <span>${index + 1}. ${category}</span>
+                            <span style="font-weight: 600; color: var(--accent-primary);">${formatCurrency(amount)}</span>
+                        </div>
+                    `).join('') : '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No data available</p>'}
+                </div>
             </div>
         </div>
     `;
