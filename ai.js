@@ -156,18 +156,48 @@ export const showAuditResults = (updates) => {
     modal.id = 'audit-results-modal';
     modal.className = 'modal';
 
+    // Get all available categories for the dropdown
+    const allCategories = state.categories.map(c => c.name).sort();
+
     const rows = updates.map(u => {
         const tx = state.transactions.find(t => t.id === u.id);
         if (!tx) return '';
+
+        // Build the "New" column - dropdown for category, text for type
+        let newValueHTML;
+        if (u.field === 'category') {
+            // Create dropdown with all categories, including the suggested one
+            const categoryOptions = [...new Set([...allCategories, u.new_value])].sort();
+            newValueHTML = `
+                <select class="audit-new-value" data-id="${u.id}" data-field="${u.field}" style="
+                    width: 100%;
+                    padding: 0.4rem;
+                    background-color: rgba(255, 255, 255, 0.05);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    color: var(--success);
+                    font-weight: 500;
+                    font-family: inherit;
+                ">
+                    ${categoryOptions.map(cat => `
+                        <option value="${cat}" ${cat === u.new_value ? 'selected' : ''}>${cat}</option>
+                    `).join('')}
+                </select>
+            `;
+        } else {
+            // For type changes, just show as text
+            newValueHTML = `<span style="color: var(--success); font-weight: 500;">${u.new_value}</span>`;
+        }
+
         return `
             <tr>
                 <td>${tx.description}</td>
                 <td>${u.field}</td>
                 <td style="color: var(--danger); text-decoration: line-through;">${u.field === 'category' ? tx.category : tx.type}</td>
-                <td style="color: var(--success); font-weight: 500;">${u.new_value}</td>
+                <td>${newValueHTML}</td>
                 <td><small>${u.reason}</small></td>
                 <td style="text-align: center;">
-                    <input type="checkbox" class="audit-check" checked data-id="${u.id}" data-field="${u.field}" data-value="${u.new_value}">
+                    <input type="checkbox" class="audit-check" checked data-id="${u.id}" data-field="${u.field}">
                 </td>
             </tr>
         `;
@@ -176,10 +206,10 @@ export const showAuditResults = (updates) => {
     const modalId = 'audit-results-modal';
 
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 900px;">
             <span class="close-modal" id="close-audit-modal">&times;</span>
             <h2>Audit Results</h2>
-            <p>Found ${updates.length} suggested improvements.</p>
+            <p>Found ${updates.length} suggested improvements. You can modify the suggested categories before applying.</p>
             <div style="max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">
                 <table class="transaction-table">
                     <thead>
@@ -211,11 +241,24 @@ export const showAuditResults = (updates) => {
  */
 export const applyAuditChanges = async () => {
     const checks = document.querySelectorAll('.audit-check:checked');
-    const changes = Array.from(checks).map(c => ({
-        id: c.dataset.id,
-        field: c.dataset.field,
-        value: c.dataset.value
-    }));
+    const changes = Array.from(checks).map(c => {
+        const id = c.dataset.id;
+        const field = c.dataset.field;
+
+        // Get the value from the dropdown if it's a category change
+        let value;
+        if (field === 'category') {
+            const dropdown = document.querySelector(`.audit-new-value[data-id="${id}"][data-field="${field}"]`);
+            value = dropdown ? dropdown.value : '';
+        } else {
+            // For type changes, get from the row text
+            const row = c.closest('tr');
+            const newCell = row.cells[3]; // "New" column
+            value = newCell.textContent.trim();
+        }
+
+        return { id, field, value };
+    });
 
     if (changes.length === 0) return;
 
