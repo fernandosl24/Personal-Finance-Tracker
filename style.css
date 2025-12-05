@@ -38,7 +38,7 @@
 
 body {
     font-family: 'Outfit', sans-serif;
-    background-color: var(--bg-dark);
+    background-color: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
     overflow: hidden;
@@ -54,7 +54,7 @@ body {
 /* Sidebar */
 .sidebar {
     width: 260px;
-    background-color: var(--bg-sidebar);
+    background-color: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -151,7 +151,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: var(--bg-dark);
+    background-color: var(--bg-primary);
 }
 
 .top-bar {
@@ -227,7 +227,7 @@ body {
 }
 
 .auth-card {
-    background-color: var(--bg-card);
+    background-color: var(--card-bg);
     padding: 2.5rem;
     border-radius: var(--radius-lg);
     width: 100%;
@@ -326,7 +326,7 @@ body {
 }
 
 .card {
-    background-color: var(--bg-card);
+    background-color: var(--card-bg);
     padding: var(--spacing-md);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
@@ -517,7 +517,7 @@ body {
 }
 
 .tx-content {
-    background-color: var(--bg-card);
+    background-color: var(--card-bg);
     position: relative;
     z-index: 2;
     display: flex;
@@ -629,7 +629,7 @@ body {
 }
 
 .modal-content {
-    background-color: var(--bg-card);
+    background-color: var(--card-bg);
     padding: 2rem;
     border-radius: var(--radius-md);
     width: 90%;
