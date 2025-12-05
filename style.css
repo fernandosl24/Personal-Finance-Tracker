@@ -922,3 +922,110 @@ body {
 .chart-card-full canvas {
     max-height: 300px;
 }
+
+/* ========================================
+   NOTIFICATIONS
+   ======================================== */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    min-width: 300px;
+    max-width: 450px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(500px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification-fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(500px);
+    }
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.notification-content i {
+    font-size: 1.25rem;
+}
+
+.notification-success {
+    border-left: 4px solid var(--success);
+}
+
+.notification-success i {
+    color: var(--success);
+}
+
+.notification-warning {
+    border-left: 4px solid var(--warning);
+}
+
+.notification-warning i {
+    color: var(--warning);
+}
+
+.notification-danger {
+    border-left: 4px solid var(--danger);
+}
+
+.notification-danger i {
+    color: var(--danger);
+}
+
+.notification-info {
+    border-left: 4px solid var(--accent-primary);
+}
+
+.notification-info i {
+    color: var(--accent-primary);
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.notification-close:hover {
+    color: var(--text-primary);
+}

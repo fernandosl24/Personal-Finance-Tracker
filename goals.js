@@ -1,6 +1,7 @@
 import { supabaseClient } from './supabaseClient.js';
 import { state } from './state.js';
 import { sanitizeInput, formatCurrency } from './utils.js';
+import { checkGoalMilestones, showNotification } from './notifications.js';
 
 /**
  * Handles the submission of the goal form (Add/Edit).
@@ -114,6 +115,9 @@ const updateGoalAmount = async (id, additionalAmount) => {
         // Reload goals and re-render
         await loadGoals();
         renderGoals();
+
+        // Check for goal milestones
+        setTimeout(() => checkGoalMilestones(), 500);
     } catch (error) {
         console.error('Error updating goal:', error);
         alert('Failed to update goal. Please try again.');

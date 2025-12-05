@@ -4,6 +4,7 @@ import { sanitizeInput, validateTransaction, formatCurrency, getCategoryColor } 
 import { loadData } from './dataLoader.js';
 import { analyzeTransactions, showAuditResults } from './ai.js';
 import { updateAccountBalance } from './accounts.js';
+import { checkBudgetWarnings, checkUnusualSpending } from './notifications.js';
 
 /**
  * Debounces a function call
@@ -129,6 +130,12 @@ export const handleTransactionSubmit = async (e) => {
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalBtnText;
+
+        // Check for budget warnings and unusual spending
+        setTimeout(() => {
+            checkBudgetWarnings();
+            checkUnusualSpending();
+        }, 500);
     }
 };
 

@@ -1,6 +1,7 @@
 import { supabaseClient } from './supabaseClient.js';
 import { state } from './state.js';
 import { sanitizeInput, formatCurrency } from './utils.js';
+import { checkBudgetWarnings } from './notifications.js';
 
 /**
  * Loads budgets from Supabase
@@ -192,6 +193,9 @@ export const renderBudgets = () => {
 
     // Event delegation for buttons
     attachBudgetEventListeners();
+
+    // Check for budget warnings
+    setTimeout(() => checkBudgetWarnings(), 500);
 };
 
 /**
