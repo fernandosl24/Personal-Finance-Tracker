@@ -4,32 +4,37 @@ body.theme-light {
     /* Fix hover states */
     .nav-links a:hover,
     .nav-links li.active a {
-        background-color: rgba(0, 0, 0, 0.05);
+        background-color: rgba(0, 0, 0, 0.05) !important;
     }
 
     /* Fix form inputs */
     .form-group input,
     .form-group select,
     .form-group textarea {
-        background-color: rgba(0, 0, 0, 0.03);
-        color: var(--text-primary);
+        background-color: rgba(0, 0, 0, 0.03) !important;
+        color: var(--text-primary) !important;
     }
 
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
-        background-color: rgba(0, 0, 0, 0.05);
+        background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Fix transaction items */
+    .tx-content {
+        background-color: var(--card-bg) !important;
     }
 
     /* Fix transaction hover */
     .transaction-item:hover .tx-content {
-        background-color: rgba(0, 0, 0, 0.02);
+        background-color: rgba(0, 0, 0, 0.02) !important;
     }
 
     /* Fix badges */
     .badge {
-        background-color: rgba(0, 0, 0, 0.1);
-        color: var(--text-primary);
+        background-color: rgba(0, 0, 0, 0.1) !important;
+        color: var(--text-primary) !important;
     }
 
     /* Fix borders */
@@ -37,21 +42,31 @@ body.theme-light {
     .budget-card,
     .summary-card,
     .chart-card {
-        border: 1px solid rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
     }
 
     /* Fix progress bars */
     .progress-bar {
-        background: rgba(0, 0, 0, 0.1);
+        background: rgba(0, 0, 0, 0.1) !important;
     }
 
     /* Fix table styling */
     .transaction-table th {
-        background: var(--bg-secondary);
-        color: var(--text-primary);
+        background: var(--bg-secondary) !important;
+        color: var(--text-primary) !important;
     }
 
     .transaction-table tr:hover {
-        background-color: rgba(0, 0, 0, 0.02);
+        background-color: rgba(0, 0, 0, 0.02) !important;
+    }
+
+    /* Fix transaction list background */
+    .transaction-list {
+        background: transparent !important;
+    }
+
+    /* Fix category icons */
+    .tx-category-icon {
+        opacity: 0.9;
     }
 }
