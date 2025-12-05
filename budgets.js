@@ -58,7 +58,8 @@ const handleBudgetSubmit = async (e) => {
     const budgetData = {
         user_id: state.user.id,
         category,
-        amount_limit: amount,  // Use amount_limit to match database schema
+        amount_limit: amount,  // Primary column
+        amount: amount,        // Also set this to satisfy check constraint
         period: 'monthly'
     };
 
