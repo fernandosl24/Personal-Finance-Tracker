@@ -258,20 +258,73 @@ const loadAuditHistory = async () => {
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
                         ${audit.status === 'pending' ? `
-                            <button class="btn btn-sm btn-primary" onclick="viewAudit('${audit.id}')">
+                            <button class="btn btn-sm btn-primary view-audit-btn" data-audit-id="${audit.id}">
                                 <i class="fa-solid fa-eye"></i> View
                             </button>
                         ` : `
-                            <button class="btn btn-sm btn-secondary" onclick="viewAudit('${audit.id}')">
+                            <button class="btn btn-sm btn-secondary view-audit-btn" data-audit-id="${audit.id}">
                                 <i class="fa-solid fa-history"></i> Review
                             </button>
                         `}
+                        <button class="btn btn-sm btn-danger delete-audit-btn" data-audit-id="${audit.id}" title="Delete this audit">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
                     </div>
                 </div>
             `;
         }).join('');
 
         container.innerHTML = rows;
+
+        // Attach click handlers for view buttons
+        document.querySelectorAll('.view-audit-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const auditId = btn.dataset.auditId;
+                const audit = data.find(a => a.id === auditId);
+                if (audit) {
+                    window.location.hash = 'audit-results';
+                    setTimeout(() => {
+                        renderAuditResultsPage(audit.updates, audit);
+                    }, 100);
+                }
+            });
+        });
+
+        // Attach click handlers for delete buttons
+        document.querySelectorAll('.delete-audit-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const auditId = btn.dataset.auditId;
+                const audit = data.find(a => a.id === auditId);
+
+                if (!audit) return;
+
+                const date = new Date(audit.created_at).toLocaleString();
+                const confirmMsg = `Delete audit from ${date}?\n\nThis will permanently remove this audit and all its suggestions.`;
+
+                if (!confirm(confirmMsg)) return;
+
+                // Disable button and show loading
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('audit_results')
+                        .delete()
+                        .eq('id', auditId);
+
+                    if (error) throw error;
+
+                    // Reload audit history
+                    await loadAuditHistory();
+                } catch (err) {
+                    console.error('Delete audit error:', err);
+                    alert('Error deleting audit: ' + err.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                }
+            });
+        });
 
     } catch (error) {
         console.error('Error loading audit history:', error);
