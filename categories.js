@@ -121,10 +121,10 @@ export const handleCategorySubmit = async (e, fromSettings = false) => {
  * @param {string} id - The category ID.
  */
 export const deleteCategory = async (id) => {
-    console.log('deleteCategory called with id:', id);
+    console.log('deleteCategory called with id:', id, 'type:', typeof id);
     try {
         // 1. Get Category
-        const category = state.categories.find(c => c.id === id);
+        const category = state.categories.find(c => c.id == id || c.id === id);
         console.log('Found category to delete:', category);
         if (!category) return;
 
@@ -270,8 +270,8 @@ const executeDeleteCategory = async (categoryId, categoryName, newCategory, moda
  * @param {string} id - The category ID.
  */
 export const editCategory = (id) => {
-    console.log('editCategory called with id:', id);
-    const c = state.categories.find(cat => cat.id === id);
+    console.log('editCategory called with id:', id, 'type:', typeof id);
+    const c = state.categories.find(cat => cat.id == id || cat.id === id);
     console.log('Found category:', c);
     if (!c) return;
 
