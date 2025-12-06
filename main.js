@@ -33,34 +33,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Auth State Listener
-    let isInitialLoad = true;
+    // Auth State Listener - ONLY navigate on initial page load
+    let hasNavigatedOnce = false;
+
     supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log('🔐 Auth event:', event, 'Hash:', window.location.hash, 'Initial:', isInitialLoad);
+        const currentHash = window.location.hash.slice(1);
+        console.log('🔐 Auth event:', event, 'Hash:', currentHash, 'HasNavigated:', hasNavigatedOnce);
 
         if (session) {
             state.user = session.user;
 
-            // Only navigate on the very first SIGNED_IN event or if we're on login page
-            const currentHash = window.location.hash.slice(1);
-            const isOnLoginPage = currentHash === 'login' || !currentHash;
+            // CRITICAL: Only navigate if we haven't navigated yet AND we're on login/no page
+            const shouldNavigate = !hasNavigatedOnce && (!currentHash || currentHash === 'login');
 
-            if (event === 'SIGNED_IN' && (isInitialLoad || isOnLoginPage)) {
-                console.log('✅ Navigating to dashboard (initial sign-in)');
+            if (shouldNavigate) {
+                console.log('✅ First load - navigating to dashboard');
                 loadData();
                 navigateTo('dashboard');
-                isInitialLoad = false;
-            } else if (event === 'SIGNED_IN' && !isInitialLoad && !isOnLoginPage) {
-                // User is already signed in and on a page - just reload data
-                console.log('🔄 Reloading data only (already on a page)');
-                loadData();
-            } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                // Silent data reload, absolutely no navigation
-                console.log('🔄 Token refreshed - reloading data silently');
-                loadData();
-            } else if (event === 'INITIAL_SESSION') {
-                // Initial session check - don't navigate, just load data
-                console.log('🔄 Initial session - loading data only');
+                hasNavigatedOnce = true;
+            } else {
+                // Any other case - just reload data, NEVER navigate
+                console.log('🔄 Reloading data only - staying on:', currentHash || 'current page');
                 loadData();
             }
 
