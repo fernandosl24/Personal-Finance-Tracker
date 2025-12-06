@@ -571,7 +571,32 @@ const renderSettings = () => {
             </small>
             
             <hr style="margin: 2rem 0; border-color: var(--border-color);">
+
+            <h3>Category Management</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Manage your transaction categories. Add custom categories or optimize existing ones.
+            </p>
             
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm" id="add-category-btn">
+                    <i class="fa-solid fa-plus"></i> Add Category
+                </button>
+                <button class="btn btn-secondary btn-sm" id="sync-categories-btn">
+                    <i class="fa-solid fa-sync"></i> Sync Categories
+                </button>
+                <button class="btn btn-secondary btn-sm" id="optimize-categories-btn">
+                    <i class="fa-solid fa-magic"></i> AI Optimize
+                </button>
+            </div>
+
+            <div id="categories-list" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem;">
+                <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+                    Loading categories...
+                </p>
+            </div>
+
+            <hr style="margin: 2rem 0; border-color: var(--border-color);">
+
             <button class="btn btn-primary" id="save-settings-btn">Save Settings</button>
 
             <hr style="margin: 2rem 0; border-color: var(--border-color);">
@@ -609,6 +634,9 @@ const renderSettings = () => {
     // Load audit history
     loadAuditHistory();
 
+    // Load categories list
+    renderCategoriesList();
+
     // Attach settings listeners (Issue #10 fix - prevent memory leak)
     const settingsButtons = [
         {
@@ -624,6 +652,9 @@ const renderSettings = () => {
         { id: 'import-json-btn', handler: importFromJSON },
         { id: 'export-csv-btn', handler: exportToCSV },
         { id: 'export-pdf-btn', handler: exportToPDF },
+        { id: 'add-category-btn', handler: () => handleCategorySubmit(null, true) },
+        { id: 'sync-categories-btn', handler: syncCategories },
+        { id: 'optimize-categories-btn', handler: optimizeCategories },
         { id: 'start-audit-btn', handler: startAIAudit }
     ];
 
