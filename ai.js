@@ -204,16 +204,23 @@ export const analyzeTransactions = async (transactions, customInstructions = '',
             acc: state.accounts.find(a => a.id == t.account_id)?.name || 'Unknown'
         }));
 
-        1. Mis - categorization(e.g., "Uber" as "Groceries").
-            2. Missing categories("Uncategorized").
-            3. Better category names(standardize).
-            4. Transfers(e.g., "Payment to Credit Card" should be type = "transfer").
+        // Build prompt with optional custom instructions
+        let prompt = `
+            Audit these transactions. Look for:
+            1. Mis-categorization (e.g., "Uber" as "Groceries").
+            2. Missing categories ("Uncategorized").
+            3. Better category names (standardize).
+            4. Transfers (e.g., "Payment to Credit Card" should be type="transfer").
             
-            Existing Categories: ${ state.categories.map(c => c.name).join(', ') }.
-            Prioritize using Existing Categories if they fit.Only suggest new ones if necessary.
+            Existing Categories: ${state.categories.map(c => c.name).join(', ')}.
+            Prioritize using Existing Categories if they fit. Only suggest new ones if necessary.`;
 
-            Return JSON with a list of "changes":
-        [{ "id": "tx_id", "field": "category|type", "new_value": "...", "reason": "..." }]
+        if (customInstructions) {
+            prompt += `\n\nUser's specific instructions:\n${customInstructions}`;
+        }
+
+        prompt += `\n\nReturn JSON with a list of "changes":
+            [{ "id": "tx_id", "field": "category|type", "new_value": "...", "reason": "..." }]
             Only include transactions that need changes.
         `;
 
@@ -221,7 +228,7 @@ export const analyzeTransactions = async (transactions, customInstructions = '',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${ openAIKey } `
+                'Authorization': `Bearer ${openAIKey} `
             },
             body: JSON.stringify({
                 model: "gpt-4o",
@@ -304,7 +311,7 @@ export const processSmartImport = async () => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${ openAIKey } `
+                'Authorization': `Bearer ${openAIKey} `
             },
             body: JSON.stringify({
                 model: "gpt-4o",
