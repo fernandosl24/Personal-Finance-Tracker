@@ -957,3 +957,55 @@ const exportToPDF = () => {
 };
 
 
+/**
+ * Renders the categories list in settings
+ */
+const renderCategoriesList = () => {
+    const container = document.getElementById('categories-list');
+    if (!container) return;
+
+    if (!state.categories || state.categories.length === 0) {
+        container.innerHTML = `
+            <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+                No categories found. Add your first category!
+            </p>
+        `;
+        return;
+    }
+
+    const rows = state.categories.map(cat => {
+        const typeColor = cat.type === 'income' ? 'var(--success)' :
+            cat.type === 'expense' ? 'var(--danger)' :
+                'var(--accent-primary)';
+
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: ${cat.color_code};"></div>
+                    <span style="font-weight: 500;">${cat.name}</span>
+                    <span style="font-size: 0.8rem; color: ${typeColor}; text-transform: capitalize;">
+                        ${cat.type}
+                    </span>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-icon" onclick="editCategory('${cat.id}')" title="Edit">
+                        <i class="fa-solid fa-edit"></i>
+                    </button>
+                    <button class="btn-icon" onclick="deleteCategory('${cat.id}')" title="Delete" style="color: var(--danger);">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = rows || `
+        <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+            No categories found.
+        </p>
+    `;
+};
+
+// Make functions globally accessible
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
