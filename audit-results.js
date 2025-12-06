@@ -147,11 +147,16 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
     // Get all available categories for dropdowns
     const allCategories = state.categories.map(c => c.name).sort();
 
+    // Track missing transactions
+    let missingCount = 0;
+    const missingIds = [];
+
     // Build table rows
     const rows = updates.map((u, index) => {
         const tx = state.transactions.find(t => t.id === u.id);
         if (!tx) {
-            console.warn('Transaction not found:', u.id);
+            missingCount++;
+            missingIds.push(u.id);
             return '';
         }
 
@@ -214,6 +219,13 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
         `;
     }).filter(row => row !== '').join('');
 
+    // Log summary of missing transactions once
+    if (missingCount > 0) {
+        console.info(`ℹ️ Audit Results: ${missingCount} transaction(s) no longer exist and were skipped (IDs: ${missingIds.join(', ')})`);
+    }
+
+    const validCount = updates.length - missingCount;
+
     contentArea.innerHTML = `
         <div class="card">
             <!-- Header -->
@@ -224,6 +236,7 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                     </h2>
                     <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">
                         Found ${updates.length} suggestions • Run on ${timestamp}
+                        ${missingCount > 0 ? `<br><small style="color: var(--warning);">⚠️ ${missingCount} suggestion(s) skipped (transactions deleted)</small>` : ''}
                     </p>
                 </div>
                 <button class="btn btn-secondary" onclick="window.location.hash='#settings'">
@@ -242,7 +255,7 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                 <div style="flex: 1;"></div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span id="selected-count" style="color: var(--text-secondary); font-weight: 500;">
-                        ${updates.length} selected
+                        ${validCount} selected
                     </span>
                     <button class="btn btn-primary" id="apply-changes-btn">
                         <i class="fa-solid fa-check"></i> Apply Selected Changes
@@ -285,7 +298,7 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
 
             <!-- Footer Stats -->
             <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); text-align: center; color: var(--text-secondary);">
-                Showing <span id="visible-count">${updates.length}</span> of ${updates.length} suggestions
+                Showing <span id="visible-count">${validCount}</span> of ${validCount} suggestions
             </div>
         </div>
     `;
