@@ -152,7 +152,18 @@ export const handleTransactionSubmit = async (e) => {
  * @param {string} id - The transaction ID.
  */
 export const deleteTransaction = async (id) => {
-    if (!confirm('Are you sure you want to delete this transaction?')) return;
+    console.log('deleteTransaction called with id:', id, 'type:', typeof id);
+
+    // Find transaction using loose equality to handle string/number mismatch
+    const tx = state.transactions.find(t => t.id == id || t.id === id);
+
+    if (!tx) {
+        console.warn('Transaction not found for deletion:', id);
+        alert('Transaction not found');
+        return;
+    }
+
+    if (!confirm(`Delete transaction: ${tx.description}?`)) return;
 
     try {
         // 1. Find the transaction to get account info BEFORE deleting
@@ -201,11 +212,11 @@ export const deleteTransaction = async (id) => {
  * @param {string} id - The transaction ID.
  */
 export const editTransaction = (id) => {
-    // 1. Find the transaction in state
-    const t = state.transactions.find(tx => tx.id === id);
-    if (!t) {
-        console.error('Transaction not found:', id);
-        alert('Transaction not found');
+    console.log('editTransaction called with id:', id, 'type:', typeof id);
+    const tx = state.transactions.find(t => t.id == id || t.id === id);
+    console.log('Found transaction:', tx);
+    if (!tx) {
+        console.warn('Transaction not found:', id);
         return;
     }
 
@@ -217,61 +228,42 @@ export const editTransaction = (id) => {
     }
 
     // 3. Populate category options
-    categorySelect.innerHTML = state.categories.map(c =>
-        `<option value="${c.name}">${c.name}</option>`
-    ).join('');
+    categorySelect.innerHTML = state.categories
+        .map(c => `<option value="${c.name}" ${c.name === tx.category ? 'selected' : ''}>${c.name}</option>`)
+        .join('');
 
-    // 4. Populate account dropdown
+    // 4. Populate account options
     const accountSelect = document.getElementById('t-account');
     if (accountSelect) {
         accountSelect.innerHTML = '<option value="">No Account</option>' +
-            state.accounts.map(a =>
-                `<option value="${a.id}">${a.name}</option>`
-            ).join('');
-    }
-
-    // 5. Set form values with null checks
-    const tIdEl = document.getElementById('t-id');
-    const tTypeEl = document.getElementById('t-type');
-    const tAmountEl = document.getElementById('t-amount');
-    const tCategoryEl = document.getElementById('t-category');
-    const tDateEl = document.getElementById('t-date');
-    const tDescEl = document.getElementById('t-desc');
-    const tNotesEl = document.getElementById('t-notes');
-    const tAccountEl = document.getElementById('t-account');
-    const tSubmitBtn = document.getElementById('t-submit-btn');
-
-    if (tIdEl) tIdEl.value = t.id || '';
-    if (tTypeEl) tTypeEl.value = t.type || 'expense';
-    if (tAmountEl) tAmountEl.value = t.amount || '';
     if (tCategoryEl) tCategoryEl.value = t.category || 'Uncategorized';
-    if (tDateEl) tDateEl.value = t.date || '';
-    if (tDescEl) tDescEl.value = t.description || '';
-    if (tNotesEl) tNotesEl.value = t.notes || '';
-    if (tAccountEl) tAccountEl.value = t.account_id || '';
-    if (tSubmitBtn) tSubmitBtn.textContent = 'Update Transaction';
+        if (tDateEl) tDateEl.value = t.date || '';
+        if (tDescEl) tDescEl.value = t.description || '';
+        if (tNotesEl) tNotesEl.value = t.notes || '';
+        if (tAccountEl) tAccountEl.value = t.account_id || '';
+        if (tSubmitBtn) tSubmitBtn.textContent = 'Update Transaction';
 
-    // 6. Show delete button when editing
-    const deleteBtn = document.getElementById('t-delete-btn');
-    if (deleteBtn) {
-        deleteBtn.style.display = 'block';
-    }
+        // 6. Show delete button when editing
+        const deleteBtn = document.getElementById('t-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.style.display = 'block';
+        }
 
-    // 7. Show modal
-    const modal = document.getElementById('transaction-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-};
+        // 7. Show modal
+        const modal = document.getElementById('transaction-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    };
 
-/**
- * Renders the full Transactions view with filters.
- */
-export const renderTransactions = () => {
-    const categories = [...new Set(state.categories.map(c => c.name))];
-    const contentArea = document.getElementById('content-area');
+    /**
+     * Renders the full Transactions view with filters.
+     */
+    export const renderTransactions = () => {
+        const categories = [...new Set(state.categories.map(c => c.name))];
+        const contentArea = document.getElementById('content-area');
 
-    contentArea.innerHTML = `
+        contentArea.innerHTML = `
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3>All Transactions</h3>
@@ -377,115 +369,115 @@ export const renderTransactions = () => {
         </div>
     `;
 
-    // Initial render of the transaction list
-    const container = document.getElementById('transaction-list-container');
-    container.innerHTML = renderTransactionList(state.transactions);
-    attachTransactionListeners(container);
-    attachSwipeListeners();
+        // Initial render of the transaction list
+        const container = document.getElementById('transaction-list-container');
+        container.innerHTML = renderTransactionList(state.transactions);
+        attachTransactionListeners(container);
+        attachSwipeListeners();
 
-    // Attach Filter Listeners with debouncing for search (Issue #7 fix - prevent memory leak)
-    const debouncedFilter = debounce(filterTransactions, 300);
-    const filterInputs = ['filter-search', 'filter-type', 'filter-category', 'filter-account', 'filter-date-from', 'filter-date-to'];
+        // Attach Filter Listeners with debouncing for search (Issue #7 fix - prevent memory leak)
+        const debouncedFilter = debounce(filterTransactions, 300);
+        const filterInputs = ['filter-search', 'filter-type', 'filter-category', 'filter-account', 'filter-date-from', 'filter-date-to'];
 
-    filterInputs.forEach(id => {
-        const element = document.getElementById(id);
-        if (!element) return;
+        filterInputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (!element) return;
 
-        // Clone element to remove all existing event listeners
-        const newElement = element.cloneNode(true);
-        element.parentNode.replaceChild(newElement, element);
+            // Clone element to remove all existing event listeners
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
 
-        // Add fresh listener
-        if (id === 'filter-search') {
-            newElement.addEventListener('input', debouncedFilter);
-        } else {
-            newElement.addEventListener('input', filterTransactions);
+            // Add fresh listener
+            if (id === 'filter-search') {
+                newElement.addEventListener('input', debouncedFilter);
+            } else {
+                newElement.addEventListener('input', filterTransactions);
+            }
+        });
+
+        // Attach Button Listeners
+        document.getElementById('open-tx-modal-btn').addEventListener('click', () => {
+            document.getElementById('transaction-modal').style.display = 'flex';
+        });
+
+        document.getElementById('open-csv-modal-btn').addEventListener('click', () => {
+            document.getElementById('csv-import-modal').style.display = 'flex';
+        });
+
+        document.getElementById('close-csv-modal').addEventListener('click', () => {
+            document.getElementById('csv-import-modal').style.display = 'none';
+        });
+
+        document.getElementById('process-csv-btn').addEventListener('click', processCSVImport);
+    };
+
+    /**
+     * Filters transactions based on UI inputs.
+     */
+    export const filterTransactions = () => {
+        const search = document.getElementById('filter-search').value.toLowerCase();
+        const type = document.getElementById('filter-type').value;
+        const category = document.getElementById('filter-category').value;
+        const account = document.getElementById('filter-account').value;
+        const dateFrom = document.getElementById('filter-date-from').value;
+        const dateTo = document.getElementById('filter-date-to').value;
+
+        const filtered = state.transactions.filter(t => {
+            // 1. Search
+            if (search && !t.description.toLowerCase().includes(search) && !(t.notes || '').toLowerCase().includes(search)) {
+                return false;
+            }
+
+            // 2. Type
+            if (type !== 'all' && t.type !== type) {
+                return false;
+            }
+
+            // 3. Category
+            if (category !== 'all' && t.category !== category) {
+                return false;
+            }
+
+            // 4. Account
+            if (account !== 'all' && t.account_id !== account) { // Issue #19 fix: Strict equality
+                return false;
+            }
+
+            // 5. Date Range
+            if (dateFrom && t.date < dateFrom) return false;
+            if (dateTo && t.date > dateTo) return false;
+
+            return true;
+        });
+
+        const container = document.getElementById('transaction-list-container');
+        container.innerHTML = renderTransactionList(filtered);
+        attachTransactionListeners(container);
+        attachSwipeListeners();
+    };
+
+    /**
+     * Uses AI to auto-fill transaction details based on description and amount.
+     */
+    export const autoFillTransaction = async () => {
+        const desc = document.getElementById('t-desc').value;
+        const amount = document.getElementById('t-amount').value;
+
+        if (!desc) {
+            alert('Please enter a description first.');
+            return;
         }
-    });
 
-    // Attach Button Listeners
-    document.getElementById('open-tx-modal-btn').addEventListener('click', () => {
-        document.getElementById('transaction-modal').style.display = 'flex';
-    });
+        const btn = document.getElementById('auto-fill-btn');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> AI Thinking...';
 
-    document.getElementById('open-csv-modal-btn').addEventListener('click', () => {
-        document.getElementById('csv-import-modal').style.display = 'flex';
-    });
+        try {
+            const openAIKey = localStorage.getItem('openai_api_key');
+            if (!openAIKey) throw new Error('Please save your OpenAI API Key in Settings.');
 
-    document.getElementById('close-csv-modal').addEventListener('click', () => {
-        document.getElementById('csv-import-modal').style.display = 'none';
-    });
-
-    document.getElementById('process-csv-btn').addEventListener('click', processCSVImport);
-};
-
-/**
- * Filters transactions based on UI inputs.
- */
-export const filterTransactions = () => {
-    const search = document.getElementById('filter-search').value.toLowerCase();
-    const type = document.getElementById('filter-type').value;
-    const category = document.getElementById('filter-category').value;
-    const account = document.getElementById('filter-account').value;
-    const dateFrom = document.getElementById('filter-date-from').value;
-    const dateTo = document.getElementById('filter-date-to').value;
-
-    const filtered = state.transactions.filter(t => {
-        // 1. Search
-        if (search && !t.description.toLowerCase().includes(search) && !(t.notes || '').toLowerCase().includes(search)) {
-            return false;
-        }
-
-        // 2. Type
-        if (type !== 'all' && t.type !== type) {
-            return false;
-        }
-
-        // 3. Category
-        if (category !== 'all' && t.category !== category) {
-            return false;
-        }
-
-        // 4. Account
-        if (account !== 'all' && t.account_id !== account) { // Issue #19 fix: Strict equality
-            return false;
-        }
-
-        // 5. Date Range
-        if (dateFrom && t.date < dateFrom) return false;
-        if (dateTo && t.date > dateTo) return false;
-
-        return true;
-    });
-
-    const container = document.getElementById('transaction-list-container');
-    container.innerHTML = renderTransactionList(filtered);
-    attachTransactionListeners(container);
-    attachSwipeListeners();
-};
-
-/**
- * Uses AI to auto-fill transaction details based on description and amount.
- */
-export const autoFillTransaction = async () => {
-    const desc = document.getElementById('t-desc').value;
-    const amount = document.getElementById('t-amount').value;
-
-    if (!desc) {
-        alert('Please enter a description first.');
-        return;
-    }
-
-    const btn = document.getElementById('auto-fill-btn');
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> AI Thinking...';
-
-    try {
-        const openAIKey = localStorage.getItem('openai_api_key');
-        if (!openAIKey) throw new Error('Please save your OpenAI API Key in Settings.');
-
-        const prompt = `
+            const prompt = `
             Based on the transaction description "${desc}" and amount "${amount}", suggest:
             1. Category (from list: ${state.categories.map(c => c.name).join(', ')})
             2. Type (income, expense, transfer)
@@ -494,65 +486,65 @@ export const autoFillTransaction = async () => {
             Return JSON: { "category": "...", "type": "...", "note": "..." }
         `;
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openAIKey}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4o",
-                messages: [
-                    { role: "system", content: "You are a financial assistant. Respond in JSON." },
-                    { role: "user", content: prompt }
-                ],
-                response_format: { type: "json_object" }
-            })
-        });
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openAIKey}`
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    messages: [
+                        { role: "system", content: "You are a financial assistant. Respond in JSON." },
+                        { role: "user", content: prompt }
+                    ],
+                    response_format: { type: "json_object" }
+                })
+            });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(`OpenAI API Error: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`OpenAI API Error: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+            }
+            const data = await response.json();
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                throw new Error('Invalid response format from OpenAI');
+            }
+            const result = JSON.parse(data.choices[0].message.content);
+
+            // Apply suggestions
+            if (result.category) document.getElementById('t-category').value = result.category;
+            if (result.type) document.getElementById('t-type').value = result.type.toLowerCase();
+            if (result.note) document.getElementById('t-notes').value = result.note;
+
+        } catch (error) {
+            console.error('Auto-fill Error:', error);
+            alert('Auto-fill failed: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
         }
-        const data = await response.json();
-        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-            throw new Error('Invalid response format from OpenAI');
+    };
+
+    /**
+     * Renders the list of transactions as HTML.
+     * @param {Array} transactions - The transactions to render.
+     * @returns {string} HTML string.
+     */
+    export const renderTransactionList = (transactions) => {
+        if (transactions.length === 0) {
+            return '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No transactions found.</div>';
         }
-        const result = JSON.parse(data.choices[0].message.content);
-
-        // Apply suggestions
-        if (result.category) document.getElementById('t-category').value = result.category;
-        if (result.type) document.getElementById('t-type').value = result.type.toLowerCase();
-        if (result.note) document.getElementById('t-notes').value = result.note;
-
-    } catch (error) {
-        console.error('Auto-fill Error:', error);
-        alert('Auto-fill failed: ' + error.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-    }
-};
-
-/**
- * Renders the list of transactions as HTML.
- * @param {Array} transactions - The transactions to render.
- * @returns {string} HTML string.
- */
-export const renderTransactionList = (transactions) => {
-    if (transactions.length === 0) {
-        return '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No transactions found.</div>';
-    }
-
-    return `
-        <ul class="transaction-list">
-            ${transactions.map(t => {
-        const accountName = state.accounts.find(a => a.id === t.account_id)?.name || '-';
-        const isIncome = t.type === 'income';
-        const color = isIncome ? 'var(--success)' : (t.type === 'transfer' ? 'var(--text-secondary)' : 'var(--text-primary)');
-        const sign = isIncome ? '+' : (t.type === 'expense' ? '-' : '');
 
         return `
+        <ul class="transaction-list">
+            ${transactions.map(t => {
+            const accountName = state.accounts.find(a => a.id === t.account_id)?.name || '-';
+            const isIncome = t.type === 'income';
+            const color = isIncome ? 'var(--success)' : (t.type === 'transfer' ? 'var(--text-secondary)' : 'var(--text-primary)');
+            const sign = isIncome ? '+' : (t.type === 'expense' ? '-' : '');
+
+            return `
                 <li class="transaction-item" data-id="${t.id}" style="cursor: pointer;">
                     <div class="tx-content">
                         <div class="tx-left">
@@ -578,345 +570,345 @@ export const renderTransactionList = (transactions) => {
                     </div>
                 </li>
             `;
-    }).join('')}
+        }).join('')}
         </ul>
     `;
-};
-
-/**
- * Attaches event listeners to the transaction list buttons using event delegation.
- * This prevents memory leaks by using a single listener instead of many.
- * @param {HTMLElement} container - The container element.
- */
-export const attachTransactionListeners = (container) => {
-    // Remove old listener if it exists (cleanup)
-    if (container._transactionClickHandler) {
-        container.removeEventListener('click', container._transactionClickHandler);
-    }
-
-    // Create new handler using event delegation
-    const clickHandler = (e) => {
-        // Check if click was on swipe action (delete)
-        const swipeAction = e.target.closest('.swipe-action');
-        if (swipeAction) {
-            const txItem = swipeAction.closest('.transaction-item');
-            if (txItem) {
-                deleteTransaction(txItem.dataset.id);
-            }
-            return;
-        }
-
-        // Check if click was on transaction item (open edit modal)
-        const txItem = e.target.closest('.transaction-item');
-        if (txItem) {
-            editTransaction(txItem.dataset.id);
-            return;
-        }
     };
 
-    // Store reference for cleanup
-    container._transactionClickHandler = clickHandler;
+    /**
+     * Attaches event listeners to the transaction list buttons using event delegation.
+     * This prevents memory leaks by using a single listener instead of many.
+     * @param {HTMLElement} container - The container element.
+     */
+    export const attachTransactionListeners = (container) => {
+        // Remove old listener if it exists (cleanup)
+        if (container._transactionClickHandler) {
+            container.removeEventListener('click', container._transactionClickHandler);
+        }
 
-    // Attach single listener to container
-    container.addEventListener('click', clickHandler);
-};
+        // Create new handler using event delegation
+        const clickHandler = (e) => {
+            // Check if click was on swipe action (delete)
+            const swipeAction = e.target.closest('.swipe-action');
+            if (swipeAction) {
+                const txItem = swipeAction.closest('.transaction-item');
+                if (txItem) {
+                    deleteTransaction(txItem.dataset.id);
+                }
+                return;
+            }
 
-// Track if swipe listeners are already attached (Issue #12 fix - prevent memory leak)
-let swipeListenersAttached = false;
+            // Check if click was on transaction item (open edit modal)
+            const txItem = e.target.closest('.transaction-item');
+            if (txItem) {
+                editTransaction(txItem.dataset.id);
+                return;
+            }
+        };
 
-const attachSwipeListeners = () => {
-    // Only attach listeners once
-    if (swipeListenersAttached) return;
+        // Store reference for cleanup
+        container._transactionClickHandler = clickHandler;
 
-    const items = document.querySelectorAll('.transaction-item');
-    let touchStartX = 0;
-    let touchEndX = 0;
+        // Attach single listener to container
+        container.addEventListener('click', clickHandler);
+    };
 
-    items.forEach(item => {
-        item.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
+    // Track if swipe listeners are already attached (Issue #12 fix - prevent memory leak)
+    let swipeListenersAttached = false;
+
+    const attachSwipeListeners = () => {
+        // Only attach listeners once
+        if (swipeListenersAttached) return;
+
+        const items = document.querySelectorAll('.transaction-item');
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        items.forEach(item => {
+            item.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+
+            item.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe(item);
+            });
         });
 
-        item.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe(item);
-        });
-    });
-
-    const handleSwipe = (item) => {
-        if (touchStartX - touchEndX > 100) {
-            // Swipe Left
-            item.classList.add('swiped');
-            // Trigger delete confirmation after a delay or show a button
-            if (confirm('Delete this transaction?')) {
-                deleteTransaction(item.dataset.id);
-            } else {
+        const handleSwipe = (item) => {
+            if (touchStartX - touchEndX > 100) {
+                // Swipe Left
+                item.classList.add('swiped');
+                // Trigger delete confirmation after a delay or show a button
+                if (confirm('Delete this transaction?')) {
+                    deleteTransaction(item.dataset.id);
+                } else {
+                    item.classList.remove('swiped');
+                }
+            }
+            if (touchEndX - touchStartX > 100) {
+                // Swipe Right (Reset)
                 item.classList.remove('swiped');
             }
-        }
-        if (touchEndX - touchStartX > 100) {
-            // Swipe Right (Reset)
-            item.classList.remove('swiped');
-        }
+        };
+
+        swipeListenersAttached = true;
     };
 
-    swipeListenersAttached = true;
-};
 
 
+    /**
+     * Processes the CSV Import.
+     */
+    export const processCSVImport = async () => {
+        const fileInput = document.getElementById('csv-file-input');
+        const accountId = document.getElementById('csv-account-select').value;
+        const aiCheckbox = document.getElementById('csv-ai-analyze');
+        const shouldAnalyze = aiCheckbox ? aiCheckbox.checked : false;
+        const logDiv = document.getElementById('import-log');
 
-/**
- * Processes the CSV Import.
- */
-export const processCSVImport = async () => {
-    const fileInput = document.getElementById('csv-file-input');
-    const accountId = document.getElementById('csv-account-select').value;
-    const aiCheckbox = document.getElementById('csv-ai-analyze');
-    const shouldAnalyze = aiCheckbox ? aiCheckbox.checked : false;
-    const logDiv = document.getElementById('import-log');
+        if (!fileInput.files.length) {
+            alert('Please select a CSV file.');
+            return;
+        }
 
-    if (!fileInput.files.length) {
-        alert('Please select a CSV file.');
-        return;
-    }
+        const file = fileInput.files[0];
+        const btn = document.getElementById('process-csv-btn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
 
-    const file = fileInput.files[0];
-    const btn = document.getElementById('process-csv-btn');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                // Show import log
+                if (logDiv) {
+                    logDiv.style.display = 'block';
+                }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            // Show import log
-            if (logDiv) {
-                logDiv.style.display = 'block';
-            }
+                const text = e.target.result;
+                const lines = text.split('\n');
+                if (logDiv) {
+                    logDiv.innerHTML = `<strong style="color: var(--text-primary);">Import Log:</strong><br>Found ${lines.length} lines. Parsing...<br>`;
+                }
 
-            const text = e.target.result;
-            const lines = text.split('\n');
-            if (logDiv) {
-                logDiv.innerHTML = `<strong style="color: var(--text-primary);">Import Log:</strong><br>Found ${lines.length} lines. Parsing...<br>`;
-            }
+                const newTransactions = [];
+                let importedCount = 0;
+                let skippedCount = 0;
+                let netAmount = 0;
+                let latestBalance = null;
+                let latestDate = null;
 
-            const newTransactions = [];
-            let importedCount = 0;
-            let skippedCount = 0;
-            let netAmount = 0;
-            let latestBalance = null;
-            let latestDate = null;
-
-            // Detect Format based on Header
-            const headerLine = lines[0].toLowerCase();
-            const isBankFormat = headerLine.includes('post date') && (headerLine.includes('debit') || headerLine.includes('credit'));
-
-            if (isBankFormat) {
-                logDiv.innerHTML += 'Detected Bank Export Format.<br>';
-            } else {
-                logDiv.innerHTML += 'Using Standard Format (Date, Description, Amount...).<br>';
-            }
-
-            // Build Set for O(1) duplicate detection (optimization)
-            const existingTxSet = new Set(
-                state.transactions.map(t => {
-                    const tDesc = (t.description || '').trim().toLowerCase();
-                    const normalizedAmount = (Math.round(t.amount * 100) / 100).toFixed(2);
-                    return `${t.date}|${normalizedAmount}|${tDesc}`;
-                })
-            );
-
-            for (let i = 1; i < lines.length; i++) { // Skip header
-                const line = lines[i].trim();
-                if (!line) continue;
-
-                // Handle quotes and commas better
-                const parts = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-                const cleanParts = parts.map(p => p.replace(/^"|"$/g, '').trim());
-
-                let date, description, amount, type, category;
-                let currentBalance = null;
+                // Detect Format based on Header
+                const headerLine = lines[0].toLowerCase();
+                const isBankFormat = headerLine.includes('post date') && (headerLine.includes('debit') || headerLine.includes('credit'));
 
                 if (isBankFormat) {
-                    // Bank Format
-                    const robustParts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-
-                    date = robustParts[1]; // Post Date
-                    description = robustParts[3]; // Description
-                    const debit = parseFloat(robustParts[4]) || 0;
-                    const credit = parseFloat(robustParts[5]) || 0;
-
-                    // Try to get balance from column 7 (index 7)
-                    if (robustParts.length > 7) {
-                        currentBalance = parseFloat(robustParts[7]);
-                    }
-
-                    if (debit > 0) {
-                        amount = debit;
-                        type = 'expense';
-                    } else if (credit > 0) {
-                        amount = credit;
-                        type = 'income';
-                    } else {
-                        continue; // No amount
-                    }
-                    category = 'Uncategorized';
-
+                    logDiv.innerHTML += 'Detected Bank Export Format.<br>';
                 } else {
-                    // Standard Format
-                    const robustParts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (robustParts.length < 3) continue;
-
-                    date = robustParts[0];
-                    description = robustParts[1];
-                    amount = parseFloat(robustParts[2]);
-                    category = robustParts[3] || 'Uncategorized';
-                    type = (robustParts[4] || 'expense').toLowerCase().includes('income') ? 'income' : 'expense';
+                    logDiv.innerHTML += 'Using Standard Format (Date, Description, Amount...).<br>';
                 }
 
-                // Validate
-                if (!date || isNaN(amount)) {
-                    continue;
-                }
+                // Build Set for O(1) duplicate detection (optimization)
+                const existingTxSet = new Set(
+                    state.transactions.map(t => {
+                        const tDesc = (t.description || '').trim().toLowerCase();
+                        const normalizedAmount = (Math.round(t.amount * 100) / 100).toFixed(2);
+                        return `${t.date}|${normalizedAmount}|${tDesc}`;
+                    })
+                );
 
-                // Normalize Date
-                let dateObj;
-                try {
-                    dateObj = new Date(date);
-                    if (!isNaN(dateObj.getTime())) {
-                        date = dateObj.toISOString().split('T')[0];
+                for (let i = 1; i < lines.length; i++) { // Skip header
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Handle quotes and commas better
+                    const parts = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                    const cleanParts = parts.map(p => p.replace(/^"|"$/g, '').trim());
+
+                    let date, description, amount, type, category;
+                    let currentBalance = null;
+
+                    if (isBankFormat) {
+                        // Bank Format
+                        const robustParts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+                        date = robustParts[1]; // Post Date
+                        description = robustParts[3]; // Description
+                        const debit = parseFloat(robustParts[4]) || 0;
+                        const credit = parseFloat(robustParts[5]) || 0;
+
+                        // Try to get balance from column 7 (index 7)
+                        if (robustParts.length > 7) {
+                            currentBalance = parseFloat(robustParts[7]);
+                        }
+
+                        if (debit > 0) {
+                            amount = debit;
+                            type = 'expense';
+                        } else if (credit > 0) {
+                            amount = credit;
+                            type = 'income';
+                        } else {
+                            continue; // No amount
+                        }
+                        category = 'Uncategorized';
+
                     } else {
+                        // Standard Format
+                        const robustParts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if (robustParts.length < 3) continue;
+
+                        date = robustParts[0];
+                        description = robustParts[1];
+                        amount = parseFloat(robustParts[2]);
+                        category = robustParts[3] || 'Uncategorized';
+                        type = (robustParts[4] || 'expense').toLowerCase().includes('income') ? 'income' : 'expense';
+                    }
+
+                    // Validate
+                    if (!date || isNaN(amount)) {
                         continue;
                     }
-                } catch (e) {
-                    console.warn('Date parse error', date);
-                    continue;
-                }
 
-                // Track latest balance
-                if (currentBalance !== null && !isNaN(currentBalance)) {
-                    if (!latestDate || dateObj > latestDate) {
-                        latestDate = dateObj;
-                        latestBalance = currentBalance;
+                    // Normalize Date
+                    let dateObj;
+                    try {
+                        dateObj = new Date(date);
+                        if (!isNaN(dateObj.getTime())) {
+                            date = dateObj.toISOString().split('T')[0];
+                        } else {
+                            continue;
+                        }
+                    } catch (e) {
+                        console.warn('Date parse error', date);
+                        continue;
+                    }
+
+                    // Track latest balance
+                    if (currentBalance !== null && !isNaN(currentBalance)) {
+                        if (!latestDate || dateObj > latestDate) {
+                            latestDate = dateObj;
+                            latestBalance = currentBalance;
+                        }
+                    }
+
+                    // Duplicate Check (optimized with Set for O(1) lookup)
+                    const cleanDesc = description.replace(/"/g, '').trim().toLowerCase();
+                    const normalizedAmount = (Math.round(amount * 100) / 100).toFixed(2);
+                    const txKey = `${date}|${normalizedAmount}|${cleanDesc}`;
+                    const isDuplicate = existingTxSet.has(txKey);
+
+                    if (isDuplicate) {
+                        skippedCount++;
+                    } else {
+                        const transaction = {
+                            user_id: state.user.id,
+                            date,
+                            description: description.replace(/"/g, '').trim(),
+                            amount,
+                            category: category.replace(/"/g, '').trim(),
+                            type
+                        };
+
+                        // Link Account if selected
+                        if (accountId) {
+                            transaction.account_id = accountId;
+                            // Calculate net change
+                            if (type === 'income') netAmount += amount;
+                            else netAmount -= amount;
+                        }
+
+                        newTransactions.push(transaction);
+                        importedCount++;
                     }
                 }
 
-                // Duplicate Check (optimized with Set for O(1) lookup)
-                const cleanDesc = description.replace(/"/g, '').trim().toLowerCase();
-                const normalizedAmount = (Math.round(amount * 100) / 100).toFixed(2);
-                const txKey = `${date}|${normalizedAmount}|${cleanDesc}`;
-                const isDuplicate = existingTxSet.has(txKey);
+                if (newTransactions.length > 0) {
+                    logDiv.innerHTML += `Saving ${newTransactions.length} new transactions...<br>`;
 
-                if (isDuplicate) {
-                    skippedCount++;
-                } else {
-                    const transaction = {
-                        user_id: state.user.id,
-                        date,
-                        description: description.replace(/"/g, '').trim(),
-                        amount,
-                        category: category.replace(/"/g, '').trim(),
-                        type
-                    };
+                    const { data: insertedData, error } = await supabaseClient
+                        .from('transactions')
+                        .insert(newTransactions)
+                        .select();
 
-                    // Link Account if selected
+                    if (error) throw error;
+
+                    // Update Account Balance (Critical Fix)
                     if (accountId) {
-                        transaction.account_id = accountId;
-                        // Calculate net change
-                        if (type === 'income') netAmount += amount;
-                        else netAmount -= amount;
-                    }
-
-                    newTransactions.push(transaction);
-                    importedCount++;
-                }
-            }
-
-            if (newTransactions.length > 0) {
-                logDiv.innerHTML += `Saving ${newTransactions.length} new transactions...<br>`;
-
-                const { data: insertedData, error } = await supabaseClient
-                    .from('transactions')
-                    .insert(newTransactions)
-                    .select();
-
-                if (error) throw error;
-
-                // Update Account Balance (Critical Fix)
-                if (accountId) {
-                    if (latestBalance !== null) {
-                        // Use absolute balance from CSV
-                        await supabaseClient
-                            .from('accounts')
-                            .update({ balance: latestBalance })
-                            .eq('id', accountId);
-                        logDiv.innerHTML += `Updated account balance to ${formatCurrency(latestBalance)} (from CSV).<br>`;
-                    } else if (netAmount !== 0) {
-                        // Use net calculation (Fetch-Modify-Write for better safety)
-                        const { data: freshAccount, error: fetchError } = await supabaseClient
-                            .from('accounts')
-                            .select('balance')
-                            .eq('id', accountId)
-                            .single();
-
-                        if (!fetchError && freshAccount) {
-                            const newBalance = (freshAccount.balance || 0) + netAmount;
+                        if (latestBalance !== null) {
+                            // Use absolute balance from CSV
                             await supabaseClient
                                 .from('accounts')
-                                .update({ balance: newBalance })
+                                .update({ balance: latestBalance })
                                 .eq('id', accountId);
-                            logDiv.innerHTML += `Updated account balance by ${netAmount > 0 ? '+' : ''}${formatCurrency(netAmount)}.<br>`;
-                        } else if (fetchError) {
-                            console.error('Balance fetch error:', fetchError);
-                            logDiv.innerHTML += `<span style="color: var(--warning)">Warning: Failed to fetch account balance for update.</span>`;
+                            logDiv.innerHTML += `Updated account balance to ${formatCurrency(latestBalance)} (from CSV).<br>`;
+                        } else if (netAmount !== 0) {
+                            // Use net calculation (Fetch-Modify-Write for better safety)
+                            const { data: freshAccount, error: fetchError } = await supabaseClient
+                                .from('accounts')
+                                .select('balance')
+                                .eq('id', accountId)
+                                .single();
+
+                            if (!fetchError && freshAccount) {
+                                const newBalance = (freshAccount.balance || 0) + netAmount;
+                                await supabaseClient
+                                    .from('accounts')
+                                    .update({ balance: newBalance })
+                                    .eq('id', accountId);
+                                logDiv.innerHTML += `Updated account balance by ${netAmount > 0 ? '+' : ''}${formatCurrency(netAmount)}.<br>`;
+                            } else if (fetchError) {
+                                console.error('Balance fetch error:', fetchError);
+                                logDiv.innerHTML += `<span style="color: var(--warning)">Warning: Failed to fetch account balance for update.</span>`;
+                            }
                         }
                     }
-                }
 
-                loadData();
-                logDiv.innerHTML += '<span style="color: var(--success)">Success!</span><br>';
+                    loadData();
+                    logDiv.innerHTML += '<span style="color: var(--success)">Success!</span><br>';
 
-                // Trigger AI Analysis if checked
-                if (shouldAnalyze && insertedData && insertedData.length > 0) {
-                    logDiv.innerHTML += '<br><span style="color: var(--accent-primary)">Running AI Analysis...</span>';
-                    try {
-                        const updates = await analyzeTransactions(insertedData, (current, total) => {
-                            logDiv.innerHTML += `<br>Analyzing batch ${current} of ${total}...`;
-                            logDiv.scrollTop = logDiv.scrollHeight;
-                        });
+                    // Trigger AI Analysis if checked
+                    if (shouldAnalyze && insertedData && insertedData.length > 0) {
+                        logDiv.innerHTML += '<br><span style="color: var(--accent-primary)">Running AI Analysis...</span>';
+                        try {
+                            const updates = await analyzeTransactions(insertedData, (current, total) => {
+                                logDiv.innerHTML += `<br>Analyzing batch ${current} of ${total}...`;
+                                logDiv.scrollTop = logDiv.scrollHeight;
+                            });
 
-                        if (updates.length > 0) {
-                            setTimeout(async () => {
-                                document.getElementById('csv-import-modal').style.display = 'none';
-                                await saveAuditResults(updates);
-                                navigateToAuditResults();
-                            }, 1000);
-                            return; // Skip the standard alert
-                        } else {
-                            logDiv.innerHTML += '<br>AI found no changes needed.';
+                            if (updates.length > 0) {
+                                setTimeout(async () => {
+                                    document.getElementById('csv-import-modal').style.display = 'none';
+                                    await saveAuditResults(updates);
+                                    navigateToAuditResults();
+                                }, 1000);
+                                return; // Skip the standard alert
+                            } else {
+                                logDiv.innerHTML += '<br>AI found no changes needed.';
+                            }
+                        } catch (aiErr) {
+                            console.error('AI Error:', aiErr);
+                            logDiv.innerHTML += `<br><span style="color: var(--danger)">AI Error: ${aiErr.message}</span>`;
                         }
-                    } catch (aiErr) {
-                        console.error('AI Error:', aiErr);
-                        logDiv.innerHTML += `<br><span style="color: var(--danger)">AI Error: ${aiErr.message}</span>`;
                     }
+
+                    setTimeout(() => {
+                        document.getElementById('csv-import-modal').style.display = 'none';
+                        alert(`Import Complete!\nAdded: ${importedCount}\nSkipped (Duplicates): ${skippedCount}`);
+                    }, 1000);
+                } else {
+                    logDiv.innerHTML += `No new transactions found. Skipped ${skippedCount} duplicates.`;
                 }
 
-                setTimeout(() => {
-                    document.getElementById('csv-import-modal').style.display = 'none';
-                    alert(`Import Complete!\nAdded: ${importedCount}\nSkipped (Duplicates): ${skippedCount}`);
-                }, 1000);
-            } else {
-                logDiv.innerHTML += `No new transactions found. Skipped ${skippedCount} duplicates.`;
+            } catch (err) {
+                console.error('CSV Import Error:', err);
+                logDiv.innerHTML += `<br><span style="color: var(--danger)">Error: ${err.message}</span>`;
+                alert('Error importing CSV: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
-
-        } catch (err) {
-            console.error('CSV Import Error:', err);
-            logDiv.innerHTML += `<br><span style="color: var(--danger)">Error: ${err.message}</span>`;
-            alert('Error importing CSV: ' + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
-        }
+        };
+        reader.readAsText(file);
     };
-    reader.readAsText(file);
-};
