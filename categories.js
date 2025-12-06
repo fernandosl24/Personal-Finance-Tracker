@@ -121,32 +121,145 @@ export const handleCategorySubmit = async (e, fromSettings = false) => {
  * @param {string} id - The category ID.
  */
 export const deleteCategory = async (id) => {
-    if (!confirm('Delete this category? Associated transactions will be marked as "Uncategorized".')) return;
-
     try {
-        // 1. Get Category Name
+        // 1. Get Category
         const category = state.categories.find(c => c.id === id);
         if (!category) return;
 
-        // 2. Update Transactions to 'Uncategorized'
-        const { error: updateError } = await supabaseClient
-            .from('transactions')
-            .update({ category: 'Uncategorized' })
-            .eq('category', category.name);
+        // 2. Count affected transactions
+        const affectedCount = state.transactions.filter(t => t.category === category.name).length;
 
-        if (updateError) throw updateError;
+        if (affectedCount === 0) {
+            // No transactions affected, just delete
+            if (!confirm(`Delete category "${category.name}"?`)) return;
 
-        // 3. Delete Category
-        const { error } = await supabaseClient
-            .from('categories')
-            .delete()
-            .eq('id', id);
+            const { error } = await supabaseClient
+                .from('categories')
+                .delete()
+                .eq('id', id);
 
-        if (error) throw error;
-        loadData();
+            if (error) throw error;
+            loadData();
+            return;
+        }
+
+        // 3. Show reassignment modal
+        showCategoryReassignmentModal(category, affectedCount);
+
     } catch (err) {
         console.error('Delete Error:', err);
         alert('Error deleting category: ' + err.message);
+    }
+};
+
+/**
+ * Shows modal to reassign transactions before deleting category
+ * @param {Object} category - Category to delete
+ * @param {number} affectedCount - Number of transactions affected
+ */
+const showCategoryReassignmentModal = (category, affectedCount) => {
+    const modal = document.createElement('div');
+    modal.id = 'reassign-modal';
+    modal.className = 'modal';
+
+    // Get all other categories plus "Uncategorized" option
+    const otherCategories = state.categories
+        .filter(c => c.id !== category.id)
+        .map(c => c.name)
+        .sort();
+
+    const categoryOptions = ['Uncategorized', ...otherCategories];
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" id="close-reassign-modal">&times;</span>
+            <h2><i class="fa-solid fa-triangle-exclamation" style="color: var(--warning);"></i> Delete Category</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                You are about to delete <strong style="color: var(--text-primary);">"${category.name}"</strong>.
+                <br><br>
+                This category is used by <strong style="color: var(--accent-primary);">${affectedCount} transaction(s)</strong>.
+                <br><br>
+                Please select a category to reassign these transactions to:
+            </p>
+            
+            <div class="form-group">
+                <label>Reassign transactions to:</label>
+                <select id="reassign-category-select" style="width: 100%; padding: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem;">
+                    ${categoryOptions.map(cat => `
+                        <option value="${cat}" ${cat === 'Uncategorized' ? 'selected' : ''}>${cat}</option>
+                    `).join('')}
+                </select>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
+                    All ${affectedCount} transaction(s) will be moved to the selected category.
+                </small>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" id="cancel-delete-btn" style="flex: 1;">
+                    Cancel
+                </button>
+                <button class="btn btn-danger" id="confirm-delete-btn" style="flex: 1;">
+                    <i class="fa-solid fa-trash"></i> Delete Category
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+
+    // Attach listeners
+    document.getElementById('close-reassign-modal').onclick = () => modal.remove();
+    document.getElementById('cancel-delete-btn').onclick = () => modal.remove();
+    document.getElementById('confirm-delete-btn').onclick = async () => {
+        const newCategory = document.getElementById('reassign-category-select').value;
+        await executeDeleteCategory(category.id, category.name, newCategory, modal);
+    };
+};
+
+/**
+ * Executes the category deletion with reassignment
+ * @param {string} categoryId - Category ID to delete
+ * @param {string} categoryName - Category name
+ * @param {string} newCategory - Category to reassign transactions to
+ * @param {HTMLElement} modal - Modal element to close
+ */
+const executeDeleteCategory = async (categoryId, categoryName, newCategory, modal) => {
+    const btn = document.getElementById('confirm-delete-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting...';
+
+    try {
+        // 1. Update Transactions to new category
+        const { error: updateError } = await supabaseClient
+            .from('transactions')
+            .update({ category: newCategory })
+            .eq('category', categoryName);
+
+        if (updateError) throw updateError;
+
+        // 2. Delete Category
+        const { error } = await supabaseClient
+            .from('categories')
+            .delete()
+            .eq('id', categoryId);
+
+        if (error) throw error;
+
+        modal.remove();
+        loadData();
+
+        // Refresh categories list if on settings page
+        if (typeof renderCategoriesList === 'function') {
+            setTimeout(() => renderCategoriesList(), 500);
+        }
+
+    } catch (err) {
+        console.error('Delete Error:', err);
+        alert('Error deleting category: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 };
 
