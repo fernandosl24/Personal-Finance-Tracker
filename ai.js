@@ -238,7 +238,14 @@ export const analyzeTransactions = async (transactions, customInstructions = '',
         if (!response.ok) throw new Error('OpenAI API Error');
         const data = await response.json();
         const batchChanges = JSON.parse(data.choices[0].message.content).changes || [];
-        updates.push(...batchChanges);
+
+        // Normalize field names (AI sometimes returns "cat" instead of "category")
+        const normalizedChanges = batchChanges.map(change => ({
+            ...change,
+            field: change.field === 'cat' ? 'category' : change.field
+        }));
+
+        updates.push(...normalizedChanges);
     }
 
     return updates;
