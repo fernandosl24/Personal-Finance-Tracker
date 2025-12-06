@@ -34,24 +34,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Auth State Listener
+    let isInitialLoad = true;
     supabaseClient.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state change:', event, 'Current hash:', window.location.hash);
+        console.log('🔐 Auth event:', event, 'Hash:', window.location.hash, 'Initial:', isInitialLoad);
 
         if (session) {
             state.user = session.user;
 
-            // Only reload data and navigate on actual sign-in events, not token refresh
-            if (event === 'SIGNED_IN') {
-                loadData();
+            // Only navigate on the very first SIGNED_IN event or if we're on login page
+            const currentHash = window.location.hash.slice(1);
+            const isOnLoginPage = currentHash === 'login' || !currentHash;
 
-                // Only navigate to dashboard if we're on the login page
-                const currentHash = window.location.hash.slice(1);
-                if (currentHash === 'login' || !currentHash) {
-                    navigateTo('dashboard');
-                }
-                // Otherwise stay on current page - don't call navigateTo at all
+            if (event === 'SIGNED_IN' && (isInitialLoad || isOnLoginPage)) {
+                console.log('✅ Navigating to dashboard (initial sign-in)');
+                loadData();
+                navigateTo('dashboard');
+                isInitialLoad = false;
+            } else if (event === 'SIGNED_IN' && !isInitialLoad && !isOnLoginPage) {
+                // User is already signed in and on a page - just reload data
+                console.log('🔄 Reloading data only (already on a page)');
+                loadData();
             } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                // Just reload data silently, don't navigate
+                // Silent data reload, absolutely no navigation
+                console.log('🔄 Token refreshed - reloading data silently');
+                loadData();
+            } else if (event === 'INITIAL_SESSION') {
+                // Initial session check - don't navigate, just load data
+                console.log('🔄 Initial session - loading data only');
                 loadData();
             }
 
