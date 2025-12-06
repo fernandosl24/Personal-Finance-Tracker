@@ -155,8 +155,21 @@ const executeAIAudit = async (customInstructions = '') => {
         if (updates.length === 0) {
             alert('AI found no issues or improvements!');
         } else {
-            saveAuditResults(updates);
-            navigateToAuditResults();
+            // Save audit results to database
+            const auditId = await saveAuditResults(updates);
+
+            // Navigate to audit results page
+            window.location.hash = '#audit-results';
+
+            // Wait for navigation, then render results
+            setTimeout(() => {
+                renderAuditResultsPage(updates, {
+                    id: auditId,
+                    timestamp: new Date().toISOString(),
+                    total_suggestions: updates.length,
+                    status: 'pending'
+                });
+            }, 100);
         }
 
     } catch (error) {
