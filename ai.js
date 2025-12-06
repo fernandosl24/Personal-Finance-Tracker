@@ -181,17 +181,12 @@ const executeAIAudit = async (customInstructions = '') => {
 export const analyzeTransactions = async (transactions, customInstructions = '', onProgress) => {
     const openAIKey = localStorage.getItem('openai_api_key');
     const categories = state.categories.map(c => c.name);
+    const BATCH_SIZE = 25;
+    const updates = [];  // Fixed: Added missing variable declaration
 
-    const batchSize = 50;
-    const batches = [];
-    for (let i = 0; i < transactions.length; i += batchSize) {
-        batches.push(transactions.slice(i, i + batchSize));
-    }
-
-    const allUpdates = [];
-
-    for (let i = 0; i < batches.length; i++) {
-        const batch = batches[i];
+    for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
+        const batch = transactions.slice(i, i + BATCH_SIZE);
+        if (onProgress) onProgress(i + 1, transactions.length);
 
         // Prepare payload (minimal data to save tokens)
         const payload = batch.map(t => ({
