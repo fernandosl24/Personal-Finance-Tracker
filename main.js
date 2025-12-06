@@ -988,10 +988,10 @@ const renderCategoriesList = () => {
                     </span>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn-icon" onclick="editCategory('${cat.id}')" title="Edit">
+                    <button class="btn-icon edit-category-btn" data-category-id="${cat.id}" title="Edit">
                         <i class="fa-solid fa-edit"></i>
                     </button>
-                    <button class="btn-icon" onclick="deleteCategory('${cat.id}')" title="Delete" style="color: var(--danger);">
+                    <button class="btn-icon delete-category-btn" data-category-id="${cat.id}" title="Delete" style="color: var(--danger);">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </div>
@@ -1004,6 +1004,21 @@ const renderCategoriesList = () => {
             No categories found.
         </p>
     `;
+
+    // Attach event listeners to edit and delete buttons
+    document.querySelectorAll('.edit-category-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const categoryId = btn.dataset.categoryId;
+            editCategory(categoryId);
+        });
+    });
+
+    document.querySelectorAll('.delete-category-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const categoryId = btn.dataset.categoryId;
+            deleteCategory(categoryId);
+        });
+    });
 };
 
 // Make functions globally accessible
