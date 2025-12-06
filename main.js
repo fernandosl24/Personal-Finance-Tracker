@@ -962,6 +962,7 @@ const exportToPDF = () => {
  */
 const renderCategoriesList = () => {
     const container = document.getElementById('categories-list');
+    console.log('renderCategoriesList called, container:', container, 'categories:', state.categories?.length);
     if (!container) return;
 
     if (!state.categories || state.categories.length === 0) {
@@ -1006,16 +1007,23 @@ const renderCategoriesList = () => {
     `;
 
     // Attach event listeners to edit and delete buttons
-    document.querySelectorAll('.edit-category-btn').forEach(btn => {
+    const editButtons = document.querySelectorAll('.edit-category-btn');
+    const deleteButtons = document.querySelectorAll('.delete-category-btn');
+
+    console.log('Attaching listeners to', editButtons.length, 'edit buttons and', deleteButtons.length, 'delete buttons');
+
+    editButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const categoryId = btn.dataset.categoryId;
+            console.log('Edit clicked for category:', categoryId);
             editCategory(categoryId);
         });
     });
 
-    document.querySelectorAll('.delete-category-btn').forEach(btn => {
+    deleteButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const categoryId = btn.dataset.categoryId;
+            console.log('Delete clicked for category:', categoryId);
             deleteCategory(categoryId);
         });
     });
