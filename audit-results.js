@@ -165,36 +165,50 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
         // Build the "New" column - dropdown for category, text for type
         let newValueHTML;
         if (u.field === 'category') {
-            // Always show dropdown for category changes
-            const options = state.categories
-                .map(c => `<option value="${c.name}" ${c.name === u.new_value ? 'selected' : ''}>${c.name}</option>`)
-                .join('');
+            const categoryOptions = [...new Set([...allCategories, u.new_value])].sort();
             newValueHTML = `
-                <select class="audit-category-select" data-id="${u.id}" data-field="${u.field}" data-index="${index}" 
-                    style="width: 100%; padding: 0.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary);">
-                    ${options}
+                <select class="audit-new-value" data-id="${u.id}" data-field="${u.field}" data-index="${index}" style="
+                    width: 100%;
+                    padding: 0.4rem;
+                    background-color: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    color: var(--success);
+                    font-weight: 500;
+                    font-family: inherit;
+                ">
+                    ${categoryOptions.map(cat => `
+                        <option value="${cat}" ${cat === u.new_value ? 'selected' : ''}>${cat}</option>
+                    `).join('')}
                 </select>
             `;
         } else if (u.field === 'type') {
-            color: var(--success);
-            font - weight: 500;
-            font - family: inherit;
-            text - transform: capitalize;
-            ">
-                    ${
-                typeOptions.map(type => `
+            // Dropdown for type changes
+            const typeOptions = ['income', 'expense', 'transfer'];
+            newValueHTML = `
+                <select class="audit-new-value" data-id="${u.id}" data-field="${u.field}" data-index="${index}" style="
+                    width: 100%;
+                    padding: 0.4rem;
+                    background-color: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    color: var(--success);
+                    font-weight: 500;
+                    font-family: inherit;
+                    text-transform: capitalize;
+                ">
+                    ${typeOptions.map(type => `
                         <option value="${type}" ${type === u.new_value ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>
-                    `).join('')
-            }
-                </select >
-    `;
+                    `).join('')}
+                </select>
+            `;
         } else {
             // For any other field, show as text
-            newValueHTML = `< span style = "color: var(--success); font-weight: 500;" > ${ u.new_value }</span > `;
+            newValueHTML = `<span style="color: var(--success); font-weight: 500;">${u.new_value}</span>`;
         }
 
         return `
-    < tr class="audit-row" data - index="${index}" >
+            <tr class="audit-row" data-index="${index}">
                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${tx.description}</td>
                 <td>${u.field}</td>
                 <td style="color: var(--danger); text-decoration: line-through;">${u.field === 'category' ? tx.category : tx.type}</td>
@@ -203,20 +217,20 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                 <td style="text-align: center;">
                     <input type="checkbox" class="audit-check" checked data-id="${u.id}" data-field="${u.field}" data-index="${index}">
                 </td>
-            </tr >
-    `;
+            </tr>
+        `;
     }).filter(row => row !== '').join('');
 
     // Log summary of missing transactions once
     if (missingCount > 0) {
-        console.info(`ℹ️ Audit Results: ${ missingCount } transaction(s) no longer exist and were skipped(IDs: ${ missingIds.join(', ') })`);
+        console.info(`ℹ️ Audit Results: ${missingCount} transaction(s) no longer exist and were skipped (IDs: ${missingIds.join(', ')})`);
     }
 
     const validCount = updates.length - missingCount;
 
     contentArea.innerHTML = `
-    < div class="card" >
-            < !--Header -->
+        <div class="card">
+            <!-- Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border-color);">
                 <div>
                     <h2 style="margin: 0 0 0.5rem 0;">
@@ -232,7 +246,7 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                 </button>
             </div>
 
-            <!--Action Bar-- >
+            <!-- Action Bar -->
             <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
                 <button class="btn btn-sm" id="select-all-btn">
                     <i class="fa-solid fa-check-double"></i> Select All
@@ -251,7 +265,7 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                 </div>
             </div>
 
-            <!--Search and Filter-- >
+            <!-- Search and Filter -->
             <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 1.5rem;">
                 <div style="position: relative;">
                     <i class="fa-solid fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
@@ -265,7 +279,7 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                 </select>
             </div>
 
-            <!--Results Table-- >
+            <!-- Results Table -->
             <div style="overflow-x: auto; margin-bottom: 1rem;">
                 <table class="transaction-table" style="width: 100%;">
                     <thead style="position: sticky; top: 0; background: var(--bg-secondary); z-index: 10;">
@@ -284,11 +298,11 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                 </table>
             </div>
 
-            <!--Footer Stats-- >
-    <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); text-align: center; color: var(--text-secondary);">
-        Showing <span id="visible-count">${validCount}</span> of ${validCount} suggestions
-    </div>
-        </div >
+            <!-- Footer Stats -->
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); text-align: center; color: var(--text-secondary);">
+                Showing <span id="visible-count">${validCount}</span> of ${validCount} suggestions
+            </div>
+        </div>
     `;
 
     // Attach event listeners
@@ -339,7 +353,7 @@ const updateSelectedCount = () => {
     const checked = document.querySelectorAll('.audit-check:checked').length;
     const countEl = document.getElementById('selected-count');
     if (countEl) {
-        countEl.textContent = `${ checked } selected`;
+        countEl.textContent = `${checked} selected`;
     }
 };
 
@@ -399,7 +413,7 @@ const applySelectedChanges = async (updates) => {
         // Get the value from the dropdown if it's a category or type change
         let value;
         if (field === 'category' || field === 'type') {
-            const dropdown = document.querySelector(`.audit - new- value[data - index="${index}"]`);
+            const dropdown = document.querySelector(`.audit-new-value[data-index="${index}"]`);
             value = dropdown ? dropdown.value : update.new_value;
         } else {
             value = update.new_value;
@@ -448,7 +462,7 @@ const applySelectedChanges = async (updates) => {
                 .eq('id', change.id);
         }
 
-        alert(`Successfully applied ${ changes.length } changes!`);
+        alert(`Successfully applied ${changes.length} changes!`);
 
         // Mark audit as applied in database
         const auditId = sessionStorage.getItem('current-audit-id');
