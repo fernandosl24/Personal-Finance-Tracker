@@ -199,66 +199,78 @@ export const analyzeTransactions = async (transactions, customInstructions = '',
 
     for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
         const batch = transactions.slice(i, i + BATCH_SIZE);
-        if (onProgress) onProgress(i + 1, transactions.length);
+        const currentCount = Math.min(i + BATCH_SIZE, transactions.length);
 
-        // Prepare payload (minimal data to save tokens)
-        const payload = batch.map(t => ({
-            id: t.id,
-            date: t.date,
-            desc: t.description,
-            amount: t.amount,
-            cat: t.category,
-            type: t.type,
-            acc: state.accounts.find(a => a.id == t.account_id)?.name || 'Unknown'
-        }));
+        if (onProgress) onProgress(currentCount, transactions.length);
 
-        // Build prompt with optional custom instructions
-        let prompt = `
-            Audit these transactions. Look for:
-            1. Mis-categorization (e.g., "Uber" as "Groceries").
-            2. Missing categories ("Uncategorized").
-            3. Better category names (standardize).
-            4. Transfers (e.g., "Payment to Credit Card" should be type="transfer").
-            
-            Existing Categories: ${state.categories.map(c => c.name).join(', ')}.
-            Prioritize using Existing Categories if they fit. Only suggest new ones if necessary.`;
+        try {
+            // Prepare payload (minimal data to save tokens)
+            const payload = batch.map(t => ({
+                id: t.id,
+                date: t.date,
+                desc: t.description,
+                amount: t.amount,
+                cat: t.category,
+                type: t.type,
+                acc: state.accounts.find(a => a.id == t.account_id)?.name || 'Unknown'
+            }));
 
-        if (customInstructions) {
-            prompt += `\n\nUser's specific instructions:\n${customInstructions}`;
+            // Build prompt with optional custom instructions
+            let prompt = `
+                Audit these transactions. Look for:
+                1. Mis-categorization (e.g., "Uber" as "Groceries").
+                2. Missing categories ("Uncategorized").
+                3. Better category names (standardize).
+                4. Transfers (e.g., "Payment to Credit Card" should be type="transfer").
+                
+                Existing Categories: ${state.categories.map(c => c.name).join(', ')}.
+                Prioritize using Existing Categories if they fit. Only suggest new ones if necessary.`;
+
+            if (customInstructions) {
+                prompt += `\n\nUser's specific instructions:\n${customInstructions}`;
+            }
+
+            prompt += `\n\nReturn JSON with a list of "changes":
+                [{ "id": "tx_id", "field": "category|type", "new_value": "...", "reason": "..." }]
+                Only include transactions that need changes.
+            `;
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${openAIKey} `
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o",
+                    messages: [
+                        { role: "system", content: "You are a strict financial auditor. Respond in JSON." },
+                        { role: "user", content: prompt + "\nData: " + JSON.stringify(payload) }
+                    ],
+                    response_format: { type: "json_object" }
+                })
+            });
+
+            if (!response.ok) {
+                console.error(`Batch ${i / BATCH_SIZE + 1} failed:`, response.status, response.statusText);
+                continue; // Skip this batch but continue with others
+            }
+
+            const data = await response.json();
+            const batchChanges = JSON.parse(data.choices[0].message.content).changes || [];
+
+            // Normalize field names (AI sometimes returns "cat" instead of "category")
+            const normalizedChanges = batchChanges.map(change => ({
+                ...change,
+                field: change.field === 'cat' ? 'category' : change.field
+            }));
+
+            updates.push(...normalizedChanges);
+
+        } catch (batchError) {
+            console.error(`Error processing batch ${i / BATCH_SIZE + 1}:`, batchError);
+            // Continue with next batch instead of failing entirely
         }
-
-        prompt += `\n\nReturn JSON with a list of "changes":
-            [{ "id": "tx_id", "field": "category|type", "new_value": "...", "reason": "..." }]
-            Only include transactions that need changes.
-        `;
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openAIKey} `
-            },
-            body: JSON.stringify({
-                model: "gpt-4o",
-                messages: [
-                    { role: "system", content: "You are a strict financial auditor. Respond in JSON." },
-                    { role: "user", content: prompt + "\nData: " + JSON.stringify(payload) }
-                ],
-                response_format: { type: "json_object" }
-            })
-        });
-
-        if (!response.ok) throw new Error('OpenAI API Error');
-        const data = await response.json();
-        const batchChanges = JSON.parse(data.choices[0].message.content).changes || [];
-
-        // Normalize field names (AI sometimes returns "cat" instead of "category")
-        const normalizedChanges = batchChanges.map(change => ({
-            ...change,
-            field: change.field === 'cat' ? 'category' : change.field
-        }));
-
-        updates.push(...normalizedChanges);
     }
 
     return updates;
