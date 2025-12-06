@@ -175,7 +175,28 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
                     `).join('')}
                 </select>
             `;
+        } else if (u.field === 'type') {
+            // Dropdown for type changes
+            const typeOptions = ['income', 'expense', 'transfer'];
+            newValueHTML = `
+                <select class="audit-new-value" data-id="${u.id}" data-field="${u.field}" data-index="${index}" style="
+                    width: 100%;
+                    padding: 0.4rem;
+                    background-color: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 4px;
+                    color: var(--success);
+                    font-weight: 500;
+                    font-family: inherit;
+                    text-transform: capitalize;
+                ">
+                    ${typeOptions.map(type => `
+                        <option value="${type}" ${type === u.new_value ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                    `).join('')}
+                </select>
+            `;
         } else {
+            // For any other field, show as text
             newValueHTML = `<span style="color: var(--success); font-weight: 500;">${u.new_value}</span>`;
         }
 
@@ -374,9 +395,9 @@ const applySelectedChanges = async (updates) => {
         const id = c.dataset.id;
         const field = c.dataset.field;
 
-        // Get the value from the dropdown if it's a category change
+        // Get the value from the dropdown if it's a category or type change
         let value;
-        if (field === 'category') {
+        if (field === 'category' || field === 'type') {
             const dropdown = document.querySelector(`.audit-new-value[data-index="${index}"]`);
             value = dropdown ? dropdown.value : update.new_value;
         } else {
