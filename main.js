@@ -38,7 +38,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (session) {
             state.user = session.user;
             loadData();
-            navigateTo('dashboard');
+
+            // Only navigate to dashboard if we're on the login page or have no hash
+            const currentHash = window.location.hash.slice(1) || 'dashboard';
+            if (currentHash === 'login' || !currentHash) {
+                navigateTo('dashboard');
+            } else {
+                // Stay on current page but update the view
+                navigateTo(currentHash);
+            }
+
             const emailEl = document.getElementById('user-email');
             if (emailEl) emailEl.textContent = session.user.email;
         } else {
@@ -55,7 +64,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         state.user = session.user;
         loadData();
-        navigateTo('dashboard');
+
+        // Navigate to hash if present, otherwise dashboard
+        const initialHash = window.location.hash.slice(1);
+        navigateTo(initialHash || 'dashboard');
     }
 
     // Attach Auth Event Listener
