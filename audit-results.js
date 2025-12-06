@@ -153,10 +153,12 @@ export const renderAuditResultsPage = (updates, auditData = null) => {
 
     // Build table rows
     const rows = updates.map((u, index) => {
-        const tx = state.transactions.find(t => t.id === u.id);
+        // Use loose equality to handle string/number ID mismatch
+        const tx = state.transactions.find(t => t.id == u.id || t.id === u.id);
         if (!tx) {
             missingCount++;
             missingIds.push(u.id);
+            console.log('Transaction not found for audit suggestion:', u.id, 'type:', typeof u.id, 'Available IDs:', state.transactions.slice(0, 3).map(t => ({ id: t.id, type: typeof t.id })));
             return '';
         }
 
