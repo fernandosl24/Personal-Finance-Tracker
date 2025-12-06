@@ -188,6 +188,117 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+/**
+ * Loads and displays audit history
+ */
+const loadAuditHistory = async () => {
+    const container = document.getElementById('audit-history-container');
+    if (!container) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('audit_results')
+            .select('*')
+            .eq('user_id', state.user.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `
+                <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                    No audit history found. Run your first AI audit to get started!
+                </p>
+            `;
+            return;
+        }
+
+        const rows = data.map(audit => {
+            const date = new Date(audit.created_at).toLocaleString();
+            const statusColor = audit.status === 'applied' ? 'var(--success)' :
+                audit.status === 'pending' ? 'var(--warning)' :
+                    'var(--text-secondary)';
+            const statusIcon = audit.status === 'applied' ? 'fa-check-circle' :
+                audit.status === 'pending' ? 'fa-clock' :
+                    'fa-times-circle';
+
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 0.75rem; background: var(--bg-secondary);">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <i class="fa-solid ${statusIcon}" style="color: ${statusColor};"></i>
+                            <strong>${date}</strong>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                            ${audit.total_suggestions} suggestions found
+                            ${audit.status === 'applied' ? ` • ${audit.applied_count} changes applied` : ''}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        ${audit.status === 'pending' ? `
+                            <button class="btn btn-sm btn-primary" onclick="viewAudit('${audit.id}')">
+                                <i class="fa-solid fa-eye"></i> View
+                            </button>
+                        ` : `
+                            <button class="btn btn-sm btn-secondary" onclick="viewAudit('${audit.id}')">
+                                <i class="fa-solid fa-history"></i> Review
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = rows;
+
+    } catch (error) {
+        console.error('Error loading audit history:', error);
+        container.innerHTML = `
+            <p style="text-align: center; color: var(--danger); padding: 1rem;">
+                Error loading audit history. Please try again.
+            </p>
+        `;
+    }
+};
+
+/**
+ * Views a specific audit by ID
+ * @param {string} auditId - Audit ID to view
+ */
+window.viewAudit = async (auditId) => {
+    try {
+        const { data, error } = await supabaseClient
+            .from('audit_results')
+            .select('*')
+            .eq('id', auditId)
+            .eq('user_id', state.user.id)
+            .single();
+
+        if (error) throw error;
+
+        if (data) {
+            // Store in session for quick access
+            sessionStorage.setItem('current-audit-id', data.id);
+
+            // Navigate to audit results page
+            const auditData = {
+                id: data.id,
+                timestamp: data.created_at,
+                totalSuggestions: data.total_suggestions,
+                status: data.status,
+                updates: data.updates
+            };
+
+            renderAuditResultsPage(data.updates, auditData);
+            window.location.hash = '#audit-results';
+        }
+    } catch (error) {
+        console.error('Error viewing audit:', error);
+        alert('Error loading audit: ' + error.message);
+    }
+};
+
 // Navigation Logic
 const navigateTo = (viewId) => {
     // Special case for Login
@@ -468,8 +579,23 @@ const renderSettings = () => {
             <button class="btn btn-primary" id="start-audit-btn">
                 <i class="fa-solid fa-robot"></i> Start AI Audit
             </button>
+
+            <hr style="margin: 2rem 0; border-color: var(--border-color);">
+
+            <h3>Audit History</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                View and manage your previous AI audit results.
+            </p>
+            <div id="audit-history-container">
+                <p style="text-align: center; color: var(--text-secondary); padding: 1rem;">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> Loading audit history...
+                </p>
+            </div>
         </div>
     `;
+
+    // Load audit history
+    loadAuditHistory();
 
     // Attach settings listeners (Issue #10 fix - prevent memory leak)
     const settingsButtons = [
