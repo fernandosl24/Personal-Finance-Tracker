@@ -121,9 +121,11 @@ export const handleCategorySubmit = async (e, fromSettings = false) => {
  * @param {string} id - The category ID.
  */
 export const deleteCategory = async (id) => {
+    console.log('deleteCategory called with id:', id);
     try {
         // 1. Get Category
         const category = state.categories.find(c => c.id === id);
+        console.log('Found category to delete:', category);
         if (!category) return;
 
         // 2. Count affected transactions
@@ -268,8 +270,31 @@ const executeDeleteCategory = async (categoryId, categoryName, newCategory, moda
  * @param {string} id - The category ID.
  */
 export const editCategory = (id) => {
+    console.log('editCategory called with id:', id);
     const c = state.categories.find(cat => cat.id === id);
+    console.log('Found category:', c);
     if (!c) return;
+
+    const modal = document.getElementById('category-modal');
+    console.log('Category modal element:', modal);
+
+    if (!modal) {
+        console.error('Category modal not found! Creating a simple prompt instead...');
+        const newName = prompt(`Edit category "${c.name}"\n\nEnter new name:`, c.name);
+        if (!newName || newName === c.name) return;
+
+        // Simple update
+        supabaseClient
+            .from('categories')
+            .update({ name: newName })
+            .eq('id', id)
+            .then(() => {
+                alert('Category updated!');
+                loadData();
+            })
+            .catch(err => alert('Error: ' + err.message));
+        return;
+    }
 
     document.getElementById('cat-id').value = c.id;
     document.getElementById('cat-name').value = c.name;
@@ -277,7 +302,7 @@ export const editCategory = (id) => {
     document.getElementById('cat-color').value = c.color_code;
 
     document.getElementById('cat-submit-btn').textContent = 'Update Category';
-    document.getElementById('category-modal').style.display = 'flex';
+    modal.style.display = 'flex';
 };
 
 /**
