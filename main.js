@@ -228,50 +228,97 @@ const loadAuditHistory = async () => {
 
         if (!data || data.length === 0) {
             container.innerHTML = `
+        let auditsHTML = '';
+        if (!audits || audits.length === 0) {
+            auditsHTML = `
                 <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">
                     No audit history found. Run your first AI audit to get started!
                 </p>
             `;
-            return;
-        }
+        } else {
+            auditsHTML = audits.map(audit => {
+                const date = new Date(audit.created_at);
+                const formattedDate = date.toLocaleString();
+                const suggestionCount = audit.updates ? audit.updates.length : 0;
+                const statusBadge = audit.applied
+                    ? '<span style="background: var(--success); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Applied</span>'
+                    : '<span style="background: var(--warning); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Pending</span>';
 
-        const rows = data.map(audit => {
-            const date = new Date(audit.created_at).toLocaleString();
-            const statusColor = audit.status === 'applied' ? 'var(--success)' :
-                audit.status === 'pending' ? 'var(--warning)' :
-                    'var(--text-secondary)';
-            const statusIcon = audit.status === 'applied' ? 'fa-check-circle' :
-                audit.status === 'pending' ? 'fa-clock' :
-                    'fa-times-circle';
-
-            return `
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 0.75rem; background: var(--bg-secondary);">
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                            <i class="fa-solid ${statusIcon}" style="color: ${statusColor};"></i>
-                            <strong>${date}</strong>
+                return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-sm); margin-bottom: 0.5rem;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500; margin-bottom: 0.25rem;">${formattedDate}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">${suggestionCount} suggestions found</div>
                         </div>
-                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                            ${audit.total_suggestions} suggestions found
-                            ${audit.status === 'applied' ? ` • ${audit.applied_count} changes applied` : ''}
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        ${audit.status === 'pending' ? `
-                            <button class="btn btn-sm btn-primary" onclick="viewAudit('${audit.id}')">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            ${statusBadge}
+                            <button class="btn btn-sm btn-primary view-audit-btn" data-audit-id="${audit.id}">
                                 <i class="fa-solid fa-eye"></i> View
                             </button>
-                        ` : `
-                            <button class="btn btn-sm btn-secondary" onclick="viewAudit('${audit.id}')">
-                                <i class="fa-solid fa-history"></i> Review
+                            <button class="btn btn-sm btn-danger delete-audit-btn" data-audit-id="${audit.id}" title="Delete this audit">
+                                <i class="fa-solid fa-trash"></i>
                             </button>
-                        `}
+                        </div>
                     </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
 
-        container.innerHTML = rows;
+        // Assuming the container itself will hold the list, or there's a child element with this ID
+        // For now, let's assume the container itself is the target for innerHTML
+        container.innerHTML = `<div id="audit-history-history-list">${auditsHTML}</div>`;
+
+
+        // Attach event listeners to view buttons
+        document.querySelectorAll('.view-audit-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const auditId = btn.dataset.auditId;
+                const audit = audits.find(a => a.id === auditId);
+                if (audit) {
+                    window.location.hash = 'audit-results';
+                    // Wait for navigation then render
+                    setTimeout(() => {
+                        renderAuditResultsPage(audit.updates, audit);
+                    }, 100);
+                }
+            });
+        });
+
+        // Attach event listeners to delete buttons
+        document.querySelectorAll('.delete-audit-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const auditId = btn.dataset.auditId;
+                const audit = audits.find(a => a.id === auditId);
+
+                if (!audit) return;
+
+                const date = new Date(audit.created_at).toLocaleString();
+                const confirmMsg = `Delete audit from ${date}?\n\nThis will permanently remove this audit and all its suggestions.`;
+
+                if (!confirm(confirmMsg)) return;
+
+                // Disable button and show loading
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i>';
+
+                try {
+                    const { error } = await supabaseClient
+                        .from('audit_results')
+                        .delete()
+                        .eq('id', auditId);
+
+                    if (error) throw error;
+
+                    // Reload audit history
+                    await loadAuditHistory();
+                } catch (err) {
+                    console.error('Delete audit error:', err);
+                    alert('Error deleting audit: ' + err.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                }
+            });
+        });
 
     } catch (error) {
         console.error('Error loading audit history:', error);
