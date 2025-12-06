@@ -275,34 +275,116 @@ export const editCategory = (id) => {
     console.log('Found category:', c);
     if (!c) return;
 
-    const modal = document.getElementById('category-modal');
-    console.log('Category modal element:', modal);
+    // Create styled modal
+    const modal = document.createElement('div');
+    modal.id = 'edit-category-modal';
+    modal.className = 'modal';
 
-    if (!modal) {
-        console.error('Category modal not found! Creating a simple prompt instead...');
-        const newName = prompt(`Edit category "${c.name}"\n\nEnter new name:`, c.name);
-        if (!newName || newName === c.name) return;
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" id="close-edit-category-modal">&times;</span>
+            <h2><i class="fa-solid fa-edit"></i> Edit Category</h2>
+            
+            <form id="edit-category-form">
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" id="edit-cat-name" value="${c.name}" required 
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem;">
+                </div>
 
-        // Simple update
-        supabaseClient
-            .from('categories')
-            .update({ name: newName })
-            .eq('id', id)
-            .then(() => {
-                alert('Category updated!');
-                loadData();
-            })
-            .catch(err => alert('Error: ' + err.message));
-        return;
-    }
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="edit-cat-type" required
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem;">
+                        <option value="income" ${c.type === 'income' ? 'selected' : ''}>Income</option>
+                        <option value="expense" ${c.type === 'expense' ? 'selected' : ''}>Expense</option>
+                        <option value="transfer" ${c.type === 'transfer' ? 'selected' : ''}>Transfer</option>
+                    </select>
+                </div>
 
-    document.getElementById('cat-id').value = c.id;
-    document.getElementById('cat-name').value = c.name;
-    document.getElementById('cat-type').value = c.type;
-    document.getElementById('cat-color').value = c.color_code;
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="edit-cat-color" value="${c.color_code}" required
+                        style="width: 100%; height: 50px; padding: 0.25rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer;">
+                </div>
 
-    document.getElementById('cat-submit-btn').textContent = 'Update Category';
+                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" id="cancel-edit-btn" style="flex: 1;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="save-edit-btn" style="flex: 1;">
+                        <i class="fa-solid fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
     modal.style.display = 'flex';
+
+    // Attach listeners
+    document.getElementById('close-edit-category-modal').onclick = () => modal.remove();
+    document.getElementById('cancel-edit-btn').onclick = () => modal.remove();
+    document.getElementById('edit-category-form').onsubmit = async (e) => {
+        e.preventDefault();
+        await saveEditedCategory(id, c.name, modal);
+    };
+};
+
+/**
+ * Saves the edited category
+ */
+const saveEditedCategory = async (id, oldName, modal) => {
+    const btn = document.getElementById('save-edit-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Saving...';
+
+    try {
+        const newName = document.getElementById('edit-cat-name').value.trim();
+        const newType = document.getElementById('edit-cat-type').value;
+        const newColor = document.getElementById('edit-cat-color').value;
+
+        // Update category
+        const { error } = await supabaseClient
+            .from('categories')
+            .update({
+                name: newName,
+                type: newType,
+                color_code: newColor
+            })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        // If name changed, update transactions
+        if (oldName !== newName) {
+            const { error: cascadeError } = await supabaseClient
+                .from('transactions')
+                .update({ category: newName })
+                .eq('category', oldName);
+
+            if (cascadeError) {
+                console.error('Cascade Update Failed:', cascadeError);
+                alert('Warning: Category updated, but failed to update associated transactions.');
+            }
+        }
+
+        modal.remove();
+        loadData();
+
+        // Refresh categories list
+        if (typeof renderCategoriesList === 'function') {
+            setTimeout(() => renderCategoriesList(), 500);
+        }
+
+    } catch (err) {
+        console.error('Edit Error:', err);
+        alert('Error updating category: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 };
 
 /**
