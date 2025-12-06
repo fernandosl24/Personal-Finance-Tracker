@@ -35,17 +35,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Auth State Listener
     supabaseClient.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state change:', event, 'Current hash:', window.location.hash);
+
         if (session) {
             state.user = session.user;
-            loadData();
 
-            // Only navigate to dashboard if we're on the login page or have no hash
-            const currentHash = window.location.hash.slice(1) || 'dashboard';
-            if (currentHash === 'login' || !currentHash) {
-                navigateTo('dashboard');
-            } else {
-                // Stay on current page but update the view
-                navigateTo(currentHash);
+            // Only reload data and navigate on actual sign-in events, not token refresh
+            if (event === 'SIGNED_IN') {
+                loadData();
+
+                // Only navigate to dashboard if we're on the login page
+                const currentHash = window.location.hash.slice(1);
+                if (currentHash === 'login' || !currentHash) {
+                    navigateTo('dashboard');
+                }
+                // Otherwise stay on current page - don't call navigateTo at all
+            } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                // Just reload data silently, don't navigate
+                loadData();
             }
 
             const emailEl = document.getElementById('user-email');
