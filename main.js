@@ -634,8 +634,8 @@ const renderSettings = () => {
     // Load audit history
     loadAuditHistory();
 
-    // Load categories list
-    renderCategoriesList();
+    // Load categories list after a short delay to ensure data is loaded
+    setTimeout(() => renderCategoriesList(), 300);
 
     // Attach settings listeners (Issue #10 fix - prevent memory leak)
     const settingsButtons = [
@@ -1009,3 +1009,4 @@ const renderCategoriesList = () => {
 // Make functions globally accessible
 window.editCategory = editCategory;
 window.deleteCategory = deleteCategory;
+window.renderCategoriesList = renderCategoriesList;
