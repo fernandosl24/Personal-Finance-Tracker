@@ -10,34 +10,9 @@ import { loadData } from './dataLoader.js';
 export const handleCategorySubmit = async (e, fromSettings = false) => {
     if (e && e.preventDefault) e.preventDefault();
 
-    // If called from Settings page, show a prompt modal
+    // If called from Settings page, show a styled modal
     if (fromSettings) {
-        const name = prompt('Enter category name:');
-        if (!name) return;
-
-        const type = prompt('Enter type (income/expense/transfer):', 'expense');
-        if (!type || !['income', 'expense', 'transfer'].includes(type)) {
-            alert('Invalid type. Please use: income, expense, or transfer');
-            return;
-        }
-
-        try {
-            const { error } = await supabaseClient
-                .from('categories')
-                .insert([{
-                    user_id: state.user.id,
-                    name: name.trim(),
-                    type: type,
-                    color_code: getRandomColor()
-                }]);
-
-            if (error) throw error;
-            alert('Category added!');
-            loadData();
-        } catch (err) {
-            console.error('Category Error:', err);
-            alert('Error saving category: ' + err.message);
-        }
+        showAddCategoryModal();
         return;
     }
 
@@ -132,16 +107,8 @@ export const deleteCategory = async (id) => {
         const affectedCount = state.transactions.filter(t => t.category === category.name).length;
 
         if (affectedCount === 0) {
-            // No transactions affected, just delete
-            if (!confirm(`Delete category "${category.name}"?`)) return;
-
-            const { error } = await supabaseClient
-                .from('categories')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-            loadData();
+            // No transactions affected, show simple confirmation modal
+            showDeleteConfirmationModal(category);
             return;
         }
 
@@ -151,6 +118,81 @@ export const deleteCategory = async (id) => {
     } catch (err) {
         console.error('Delete Error:', err);
         alert('Error deleting category: ' + err.message);
+    }
+};
+
+/**
+ * Shows confirmation modal for deleting category with no transactions
+ * @param {Object} category - Category to delete
+ */
+const showDeleteConfirmationModal = (category) => {
+    const modal = document.createElement('div');
+    modal.id = 'delete-confirm-modal';
+    modal.className = 'modal';
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 450px;">
+            <span class="close-modal" id="close-delete-confirm-modal">&times;</span>
+            <h2><i class="fa-solid fa-trash" style="color: var(--danger);"></i> Delete Category</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Are you sure you want to delete <strong style="color: var(--text-primary);">"${category.name}"</strong>?
+                <br><br>
+                This category is not used by any transactions.
+            </p>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary" id="cancel-delete-confirm-btn" style="flex: 1;">
+                    Cancel
+                </button>
+                <button class="btn btn-danger" id="confirm-delete-confirm-btn" style="flex: 1;">
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+
+    // Attach listeners
+    document.getElementById('close-delete-confirm-modal').onclick = () => modal.remove();
+    document.getElementById('cancel-delete-confirm-btn').onclick = () => modal.remove();
+    document.getElementById('confirm-delete-confirm-btn').onclick = async () => {
+        await executeSimpleDelete(category.id, modal);
+    };
+};
+
+/**
+ * Executes simple category deletion (no transactions affected)
+ * @param {string} categoryId - Category ID to delete
+ * @param {HTMLElement} modal - Modal element to close
+ */
+const executeSimpleDelete = async (categoryId, modal) => {
+    const btn = document.getElementById('confirm-delete-confirm-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting...';
+
+    try {
+        const { error } = await supabaseClient
+            .from('categories')
+            .delete()
+            .eq('id', categoryId);
+
+        if (error) throw error;
+
+        modal.remove();
+        loadData();
+
+        // Refresh categories list
+        if (typeof renderCategoriesList === 'function') {
+            setTimeout(() => renderCategoriesList(), 500);
+        }
+    } catch (err) {
+        console.error('Delete Error:', err);
+        alert('Error deleting category: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 };
 
@@ -672,5 +714,119 @@ const applyCategoryMerges = async () => {
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
+    }
+};
+
+/**
+ * Shows styled modal for adding a new category
+ */
+const showAddCategoryModal = () => {
+    const modal = document.createElement('div');
+    modal.id = 'add-category-modal';
+    modal.className = 'modal';
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" id="close-add-category-modal">&times;</span>
+            <h2><i class="fa-solid fa-plus"></i> Add Category</h2>
+            
+            <form id="add-category-form">
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" id="add-cat-name" required placeholder="e.g., Groceries"
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem;">
+                </div>
+
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="add-cat-type" required
+                        style="width: 100%; padding: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem;">
+                        <option value="expense" selected>Expense</option>
+                        <option value="income">Income</option>
+                        <option value="transfer">Transfer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="add-cat-color" value="${getRandomColor()}" required
+                        style="width: 100%; height: 50px; padding: 0.25rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer;">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" id="cancel-add-btn" style="flex: 1;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="save-add-btn" style="flex: 1;">
+                        <i class="fa-solid fa-plus"></i> Add Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+
+    // Focus on name input
+    setTimeout(() => document.getElementById('add-cat-name').focus(), 100);
+
+    // Attach listeners
+    document.getElementById('close-add-category-modal').onclick = () => modal.remove();
+    document.getElementById('cancel-add-btn').onclick = () => modal.remove();
+    document.getElementById('add-category-form').onsubmit = async (e) => {
+        e.preventDefault();
+        await saveNewCategory(modal);
+    };
+};
+
+/**
+ * Saves the new category
+ */
+const saveNewCategory = async (modal) => {
+    const btn = document.getElementById('save-add-btn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Adding...';
+
+    try {
+        const name = document.getElementById('add-cat-name').value.trim();
+        const type = document.getElementById('add-cat-type').value;
+        const color = document.getElementById('add-cat-color').value;
+
+        // Validation
+        const validationError = validateCategory({ name });
+        if (validationError) {
+            alert(validationError);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            return;
+        }
+
+        // Insert category
+        const { error } = await supabaseClient
+            .from('categories')
+            .insert([{
+                user_id: state.user.id,
+                name: name,
+                type: type,
+                color_code: color
+            }]);
+
+        if (error) throw error;
+
+        modal.remove();
+        loadData();
+
+        // Refresh categories list
+        if (typeof renderCategoriesList === 'function') {
+            setTimeout(() => renderCategoriesList(), 500);
+        }
+
+    } catch (err) {
+        console.error('Add Category Error:', err);
+        alert('Error adding category: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     }
 };
