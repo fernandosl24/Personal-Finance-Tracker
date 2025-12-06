@@ -7,9 +7,42 @@ import { loadData } from './dataLoader.js';
  * Handles the submission of the category form (Add/Edit).
  * @param {Event} e - The submit event.
  */
-export const handleCategorySubmit = async (e) => {
-    e.preventDefault();
+export const handleCategorySubmit = async (e, fromSettings = false) => {
+    if (e && e.preventDefault) e.preventDefault();
+
+    // If called from Settings page, show a prompt modal
+    if (fromSettings) {
+        const name = prompt('Enter category name:');
+        if (!name) return;
+
+        const type = prompt('Enter type (income/expense/transfer):', 'expense');
+        if (!type || !['income', 'expense', 'transfer'].includes(type)) {
+            alert('Invalid type. Please use: income, expense, or transfer');
+            return;
+        }
+
+        try {
+            const { error } = await supabaseClient
+                .from('categories')
+                .insert([{
+                    user_id: state.user.id,
+                    name: name.trim(),
+                    type: type,
+                    color_code: getRandomColor()
+                }]);
+
+            if (error) throw error;
+            alert('Category added!');
+            loadData();
+        } catch (err) {
+            console.error('Category Error:', err);
+            alert('Error saving category: ' + err.message);
+        }
+        return;
+    }
+
     const btn = document.getElementById('cat-submit-btn');
+    if (!btn) return;
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Saving...';
@@ -138,7 +171,11 @@ export const editCategory = (id) => {
  * Syncs categories from transactions to the categories table.
  */
 export const syncCategories = async () => {
-    const btn = document.getElementById('sync-cat-btn');
+    const btn = document.getElementById('sync-categories-btn') || document.getElementById('sync-cat-btn');
+    if (!btn) {
+        alert('Button not found');
+        return;
+    }
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Syncing...';
